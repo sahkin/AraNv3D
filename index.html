@@ -3,143 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AraNv3D - Autonomous Proprietary Spatial Core</title>
+    <title>AraNv3D - Autonomous Planetary Spatial Engine</title>
     
-    <!-- Three.js Engine Only (Pure Proprietary 3D Grid & Spatial Logic) -->
+    <!-- Three.js for 3D Globe & Spatial Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010309; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Billion-Dollar Enterprise HUD Overlay */
+        /* Billion-Dollar Enterprise HUD UI */
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
         }
         
-        .glass-card {
-            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; padding: 20px 24px; pointer-events: auto;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.95); color: #f8fafc;
-        }
-        
-        .hud-header { display: flex; justify-content: space-between; align-items: center; }
-        .label-glow { color: #38bdf8; font-size: 11px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.6); }
-        .val-display { color: #ffffff; font-size: 26px; font-weight: 900; font-family: monospace; margin-top: 4px; }
-        
-        .pulse-indicator { width: 10px; height: 10px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 15px #4ade80; }
-        
-        .action-bar { display: flex; gap: 12px; margin: 0 auto; width: 100%; max-width: 480px; pointer-events: auto; }
-        .action-btn {
-            flex: 1; padding: 18px; border: none; border-radius: 16px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: 900; font-size: 12px;
-            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .action-btn.active {
-            background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
-            border-color: #38bdf8; box-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
-        }
+        .top-section { display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
 
-        /* Custom Holographic Search Bar */
         .search-panel {
-            pointer-events: auto; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 16px; padding: 14px 20px;
-            display: flex; gap: 12px; margin-bottom: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.9);
+            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 16px; padding: 14px 18px;
+            display: flex; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.9);
         }
         .search-input {
             flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-size: 15px; font-weight: 600;
         }
-        .search-input::placeholder { color: #475569; }
+        .search-input::placeholder { color: #64748b; }
+        
+        .search-btn {
+            background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 12px;
+            padding: 0 18px; color: white; font-weight: 900; font-size: 12px; cursor: pointer;
+            box-shadow: 0 0 20px rgba(2, 132, 199, 0.5);
+        }
+
+        .glass-card {
+            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 18px; padding: 16px 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95); color: #f8fafc; display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .label-glow { color: #38bdf8; font-size: 10px; font-weight: 900; letter-spacing: 2.5px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+        .val-display { color: #ffffff; font-size: 22px; font-weight: 900; font-family: monospace; }
+        .pulse-indicator { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 12px #4ade80; }
+
+        .action-bar { display: flex; gap: 10px; pointer-events: auto; width: 100%; max-width: 440px; margin: 0 auto; }
+        .action-btn {
+            flex: 1; padding: 16px; border: none; border-radius: 14px; background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: 900; font-size: 11px;
+            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .action-btn.active {
+            background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
+            border-color: #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+        }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
+    <div id="globe-container"></div>
 
     <div class="hud-overlay">
-        <div>
-            <!-- Custom Proprietary Search Box -->
+        <div class="top-section">
+            <!-- Global Country / Place Search Bar -->
             <div class="search-panel">
-                <input type="text" class="search-input" id="spatial-query" placeholder="Enter proprietary spatial coordinates or node...">
-                <button class="action-btn" style="flex: 0 0 80px; padding: 10px;" id="query-btn">SCAN</button>
+                <input type="text" class="search-input" id="search-query" placeholder="Search country, city, or destination...">
+                <button class="search-btn" id="search-exec">LOCATE</button>
             </div>
 
-            <div class="glass-card hud-header">
+            <div class="glass-card">
                 <div>
-                    <div class="label-glow"><span class="pulse-indicator"></span>PROPRIETARY SPATIAL CORE</div>
-                    <div style="color: #94a3b8; font-size: 11px; font-weight: 700; margin-top: 4px;" id="status-text">GPS SATELLITE: INITIALIZING...</div>
+                    <div class="label-glow"><span class="pulse-indicator"></span>PLANETARY SPATIAL CORE</div>
+                    <div style="color: #94a3b8; font-size: 10px; font-weight: 700; margin-top: 3px;" id="status-text">ORBIT: ACTIVE EARTH MESH</div>
                 </div>
                 <div style="text-align: right;">
-                    <div class="label-glow">VELOCITY VECTOR</div>
+                    <div class="label-glow">VELOCITY</div>
                     <div class="val-display" id="speed-meter">0.0 KM/H</div>
                 </div>
             </div>
         </div>
 
         <div class="action-bar">
-            <button class="action-btn active" id="btn-3d">3D MESH GRID</button>
-            <button class="action-btn" id="btn-ar">QUANTUM AR</button>
+            <button class="action-btn active" id="btn-3d">3D GLOBE</button>
+            <button class="action-btn" id="btn-ar">QUANTUM HUD</button>
         </div>
     </div>
 
     <script>
-        // Completely Proprietary 3D Spatial Engine (Zero External Map Dependency)
-        const container = document.getElementById('canvas-container');
+        // Real 3D Earth Globe Engine (Proprietary Billion-Dollar Architecture)
+        const container = document.getElementById('globe-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x010309, 0.035);
+        scene.fog = new THREE.FogExp2(0x010409, 0.05);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Create Custom 3D Holographic Ground Grid (Our Own Proprietary World Matrix)
-        const gridHelper = new THREE.GridHelper(100, 50, 0x0284c7, 0x0f172a);
-        gridHelper.position.y = -2;
-        scene.add(gridHelper);
+        // Lighting for High-End Cinematic Look
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x38bdf8, 2, 50);
+        pointLight.position.set(20, 20, 20);
+        scene.add(pointLight);
 
-        // Floating Proprietary Data Nodes (Representing Real-Time Spatial Points)
-        const nodesGroup = new THREE.Group();
-        scene.add(nodesGroup);
+        // Create the Real 3D Earth Globe Sphere
+        const globeRadius = 5;
+        const globeGeometry = new THREE.SphereGeometry(globeRadius, 64, 64);
+        
+        // Procedural High-Tech Cyber Wireframe & Core Planet Material
+        const globeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0284c7,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.4
+        });
+        const earthGlobe = new THREE.Mesh(globeGeometry, globeMaterial);
+        scene.add(earthGlobe);
 
-        for (let i = 0; i < 40; i++) {
-            const geometry = new THREE.BoxGeometry(0.8, Math.random() * 4 + 1, 0.8);
-            const material = new THREE.MeshBasicMaterial({ 
-                color: i % 2 === 0 ? 0x0284c7 : 0x38bdf8, 
-                wireframe: true,
-                transparent: true,
-                opacity: 0.65
-            });
-            const cube = new THREE.Mesh(geometry, material);
-            cube.position.set(
-                (Math.random() - 0.5) * 60,
-                cube.geometry.parameters.height / 2 - 2,
-                (Math.random() - 0.5) * 60
-            );
-            nodesGroup.add(cube);
+        // Atmosphere Glow Ring around the Earth
+        const atmosGeo = new THREE.SphereGeometry(globeRadius * 1.08, 32, 32);
+        const atmosMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.12,
+            side: THREE.BackSide
+        });
+        const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+        scene.add(atmosphere);
+
+        // Target Pin Marker for searched locations
+        const pinGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const pinMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+        const targetPin = new THREE.Mesh(pinGeo, pinMat);
+        targetPin.visible = false;
+        scene.add(targetPin);
+
+        camera.position.set(0, 0, 16);
+
+        // Convert Lat/Lng to 3D Cartesian Coordinates on the Globe
+        function latLngToVector3(lat, lng, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lng + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = (radius * Math.sin(phi) * Math.sin(theta));
+            const y = (radius * Math.cos(phi));
+            return new THREE.Vector3(x, y, z);
         }
 
-        // Central User Holographic Core Marker
-        const coreGeo = new THREE.SphereGeometry(0.8, 32, 32);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, wireframe: true });
-        const userCore = new THREE.Mesh(coreGeo, coreMat);
-        userCore.position.set(0, 0, 0);
-        scene.add(userCore);
-
-        // Camera Positioning
-        camera.position.set(0, 12, 18);
-        camera.lookAt(0, 0, 0);
-
-        let targetRotationX = 0;
-        let targetRotationY = 0;
+        // Smooth Touch / Drag Interaction to Rotate the Earth Globe
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
+        let globeRotationSpeed = 0.001;
 
-        // Smooth Touch / Mouse Interaction to Navigate Our Own World
         window.addEventListener('pointerdown', (e) => {
             isDragging = true;
             previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -150,67 +168,107 @@
             const deltaX = e.clientX - previousMousePosition.x;
             const deltaY = e.clientY - previousMousePosition.y;
 
-            nodesGroup.rotation.y += deltaX * 0.005;
-            gridHelper.rotation.y += deltaX * 0.005;
+            earthGlobe.rotation.y += deltaX * 0.008;
+            earthGlobe.rotation.x += deltaY * 0.008;
+            atmosphere.rotation.copy(earthGlobe.rotation);
 
             previousMousePosition = { x: e.clientX, y: e.clientY };
         });
 
         window.addEventListener('pointerup', () => { isDragging = false; });
 
-        // Real-Time GPS Integration into our Proprietary Engine
+        // Real Geocoding Search (Searches any country, city, or place globally)
+        function executeGlobalSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            if (!query) return;
+
+            document.getElementById('status-text').innerText = `SCANNING GLOBAL INDEX: ${query.toUpperCase()}...`;
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        
+                        document.getElementById('status-text').innerText = `LOCKED: ${data[0].display_name.substring(0, 35)}...`;
+
+                        // Calculate exact 3D position on our globe
+                        const targetPos = latLngToVector3(lat, lon, globeRadius);
+                        targetPin.position.copy(targetPos);
+                        targetPin.visible = true;
+
+                        // Smoothly rotate globe to face the searched location
+                        earthGlobe.rotation.y = -(lon + 90) * (Math.PI / 180);
+                        earthGlobe.rotation.x = lat * (Math.PI / 180);
+                        atmosphere.rotation.copy(earthGlobe.rotation);
+                    } else {
+                        alert('Destination not found in planetary matrix.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Network error during planetary scan.');
+                });
+        }
+
+        document.getElementById('search-exec').addEventListener('click', executeGlobalSearch);
+        document.getElementById('search-query').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') executeGlobalSearch();
+        });
+
+        // Real-Time GPS Tracking Integration
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition((pos) => {
                 const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
                 document.getElementById('speed-meter').innerText = `${speed}.0 KM/H`;
-                document.getElementById('status-text').innerText = `LAT: ${pos.coords.latitude.toFixed(4)} | LNG: ${pos.coords.longitude.toFixed(4)}`;
                 
-                // Pulse core based on movement
-                userCore.scale.set(1 + speed*0.05, 1 + speed*0.05, 1 + speed*0.05);
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                
+                // If user doesn't search manually, auto-lock to user's real geographic location on globe
+                if(!isDragging && document.getElementById('search-query').value === '') {
+                    earthGlobe.rotation.y = -(lon + 90) * (Math.PI / 180);
+                    earthGlobe.rotation.x = lat * (Math.PI / 180);
+                    atmosphere.rotation.copy(earthGlobe.rotation);
+                }
             }, (err) => {
-                document.getElementById('status-text').innerText = "GPS SYNC: SECURE ORBIT ACTIVE";
+                console.log("GPS waiting...");
             }, { enableHighAccuracy: true });
         }
 
         // Render Loop
         function animate() {
             requestAnimationFrame(animate);
-            nodesGroup.rotation.y += 0.001;
-            userCore.rotation.y += 0.02;
+            if (!isDragging && document.getElementById('search-query').value === '') {
+                earthGlobe.rotation.y += globeRotationSpeed;
+                atmosphere.rotation.y += globeRotationSpeed;
+            }
             renderer.render(scene, camera);
         }
         animate();
 
-        // Window Resizing
+        // Resize handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // UI Mode Switching
+        // Mode Switchers
         const btn3d = document.getElementById('btn-3d');
         const btnAr = document.getElementById('btn-ar');
 
         btn3d.addEventListener('click', () => {
             btn3d.classList.add('active');
             btnAr.classList.remove('active');
-            scene.fog.density = 0.035;
+            globeMaterial.wireframe = true;
         });
 
         btnAr.addEventListener('click', () => {
             btnAr.classList.add('active');
             btn3d.classList.remove('active');
-            scene.fog.density = 0.015; // Deeper Quantum view
-        });
-
-        document.getElementById('query-btn').addEventListener('click', () => {
-            const val = document.getElementById('spatial-query').value;
-            if(val) {
-                document.getElementById('status-text').innerText = `NODE LOCKED: ${val.toUpperCase()}`;
-                // Animate nodes on query
-                nodesGroup.children.forEach(n => n.scale.y += Math.random() * 2);
-            }
+            globeMaterial.wireframe = false; // Solid Quantum Core View
         });
     </script>
 </body>
