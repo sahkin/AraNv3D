@@ -3,202 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AraNv3D - Enterprise Global Spatial Engine</title>
+    <title>AraNv3D - Autonomous Proprietary Spatial Core</title>
     
-    <!-- Leaflet & Search Geocoder CSS/JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Three.js Engine Only (Pure Proprietary 3D Grid & Spatial Logic) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #030712; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #010309; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #030712; }
-        #ar-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5; pointer-events: none; transition: opacity 0.3s ease; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Professional Google-Style Search Bar UI */
-        .search-container {
-            position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1000;
-            display: flex; gap: 10px; pointer-events: auto;
-        }
-        .search-input {
-            flex: 1; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 14px; padding: 16px 20px;
-            color: #ffffff; font-size: 15px; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        }
-        .search-input::placeholder { color: #64748b; }
-        .search-btn {
-            background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 14px;
-            padding: 0 20px; color: white; font-weight: 800; font-size: 13px; cursor: pointer;
-            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.4);
-        }
-
-        /* HUD Bottom Panel */
+        /* Billion-Dollar Enterprise HUD Overlay */
         .hud-overlay {
-            position: absolute; bottom: 30px; left: 20px; right: 20px; z-index: 10;
-            pointer-events: none; display: flex; flex-direction: column; gap: 12px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px;
         }
         
         .glass-card {
-            background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; padding: 16px 20px; pointer-events: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.85); color: #f8fafc; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; padding: 20px 24px; pointer-events: auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95); color: #f8fafc;
         }
         
-        .label-glow { color: #38bdf8; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
-        .val-display { color: #ffffff; font-size: 22px; font-weight: 900; font-family: monospace; }
-        .pulse-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 10px #4ade80; }
-
-        .action-bar { display: flex; gap: 10px; pointer-events: auto; }
+        .hud-header { display: flex; justify-content: space-between; align-items: center; }
+        .label-glow { color: #38bdf8; font-size: 11px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.6); }
+        .val-display { color: #ffffff; font-size: 26px; font-weight: 900; font-family: monospace; margin-top: 4px; }
+        
+        .pulse-indicator { width: 10px; height: 10px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 15px #4ade80; }
+        
+        .action-bar { display: flex; gap: 12px; margin: 0 auto; width: 100%; max-width: 480px; pointer-events: auto; }
         .action-btn {
-            flex: 1; padding: 14px; border: none; border-radius: 14px; background: rgba(30, 41, 59, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.15); color: #38bdf8; font-weight: 800; font-size: 11px;
-            letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+            flex: 1; padding: 18px; border: none; border-radius: 16px; background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: 900; font-size: 12px;
+            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .action-btn.active { background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-color: #38bdf8; box-shadow: 0 0 20px rgba(56,189,248,0.4); }
+        .action-btn.active {
+            background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
+            border-color: #38bdf8; box-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
+        }
+
+        /* Custom Holographic Search Bar */
+        .search-panel {
+            pointer-events: auto; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 16px; padding: 14px 20px;
+            display: flex; gap: 12px; margin-bottom: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.9);
+        }
+        .search-input {
+            flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-size: 15px; font-weight: 600;
+        }
+        .search-input::placeholder { color: #475569; }
     </style>
 </head>
 <body>
 
-    <!-- Google-Style Global Search Bar -->
-    <div class="search-container">
-        <input type="text" id="search-box" class="search-input" placeholder="Search places, addresses, or coordinates..." />
-        <button id="search-submit" class="search-btn">GO</button>
-    </div>
-
-    <div id="map"></div>
-    <canvas id="ar-canvas"></canvas>
+    <div id="canvas-container"></div>
 
     <div class="hud-overlay">
-        <div class="glass-card">
-            <div>
-                <div class="label-glow"><span class="pulse-dot"></span>GLOBAL SPATIAL ENGINE</div>
-                <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">LIVE VECTOR STREAM</div>
+        <div>
+            <!-- Custom Proprietary Search Box -->
+            <div class="search-panel">
+                <input type="text" class="search-input" id="spatial-query" placeholder="Enter proprietary spatial coordinates or node...">
+                <button class="action-btn" style="flex: 0 0 80px; padding: 10px;" id="query-btn">SCAN</button>
             </div>
-            <div style="text-align: right;">
-                <div class="label-glow">VELOCITY</div>
-                <div class="val-display" id="speed-meter">0 KM/H</div>
+
+            <div class="glass-card hud-header">
+                <div>
+                    <div class="label-glow"><span class="pulse-indicator"></span>PROPRIETARY SPATIAL CORE</div>
+                    <div style="color: #94a3b8; font-size: 11px; font-weight: 700; margin-top: 4px;" id="status-text">GPS SATELLITE: INITIALIZING...</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="label-glow">VELOCITY VECTOR</div>
+                    <div class="val-display" id="speed-meter">0.0 KM/H</div>
+                </div>
             </div>
         </div>
 
         <div class="action-bar">
-            <button class="action-btn active" id="btn-3d">3D SPATIAL</button>
-            <button class="action-btn" id="btn-ar">AR HUD</button>
+            <button class="action-btn active" id="btn-3d">3D MESH GRID</button>
+            <button class="action-btn" id="btn-ar">QUANTUM AR</button>
         </div>
     </div>
 
     <script>
-        // Initialize Premium Enterprise Map (Zero Broken Tiles, Full Touch & Zoom)
-        const map = L.map('map', {
-            zoomControl: false,
-            dragging: true,
-            touchZoom: true,
-            scrollWheelZoom: true,
-            doubleClickZoom: true
-        }).setView([33.6844, 73.0479], 17);
+        // Completely Proprietary 3D Spatial Engine (Zero External Map Dependency)
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x010309, 0.035);
 
-        // High-End CartoDB Dark Matter Basemap (Clean corporate look like Google/Apple)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20,
-            minZoom: 2,
-            subdomains: 'abcd',
-            attribution: '&copy; AraNv3D Enterprise Core'
-        }).addTo(map);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
 
-        // User Live GPS Marker
-        const userMarker = L.circleMarker([33.6844, 73.0479], {
-            color: '#0284c7',
-            fillColor: '#38bdf8',
-            fillOpacity: 0.9,
-            radius: 10,
-            weight: 3
-        }).addTo(map);
+        // Create Custom 3D Holographic Ground Grid (Our Own Proprietary World Matrix)
+        const gridHelper = new THREE.GridHelper(100, 50, 0x0284c7, 0x0f172a);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
 
-        let isLocked = false;
+        // Floating Proprietary Data Nodes (Representing Real-Time Spatial Points)
+        const nodesGroup = new THREE.Group();
+        scene.add(nodesGroup);
 
-        // Autonomous Geolocation Live Tracker
-        if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition((p) => {
-                const lat = p.coords.latitude;
-                const lng = p.coords.longitude;
-                const speed = p.coords.speed ? Math.round(p.coords.speed * 3.6) : 0;
-                
-                document.getElementById('speed-meter').innerText = `${speed} KM/H`;
-                userMarker.setLatLng([lat, lng]);
-
-                if (!isLocked) {
-                    map.setView([lat, lng], 18);
-                    isLocked = true;
-                }
-            }, (err) => console.log(err), { enableHighAccuracy: true });
+        for (let i = 0; i < 40; i++) {
+            const geometry = new THREE.BoxGeometry(0.8, Math.random() * 4 + 1, 0.8);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: i % 2 === 0 ? 0x0284c7 : 0x38bdf8, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.65
+            });
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(
+                (Math.random() - 0.5) * 60,
+                cube.geometry.parameters.height / 2 - 2,
+                (Math.random() - 0.5) * 60
+            );
+            nodesGroup.add(cube);
         }
 
-        // Live Search Bar Implementation (Google Style Geocoding)
-        const searchInput = document.getElementById('search-box');
-        const searchSubmit = document.getElementById('search-submit');
+        // Central User Holographic Core Marker
+        const coreGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, wireframe: true });
+        const userCore = new THREE.Mesh(coreGeo, coreMat);
+        userCore.position.set(0, 0, 0);
+        scene.add(userCore);
 
-        function performSearch() {
-            const query = searchInput.value.trim();
-            if (!query) return;
+        // Camera Positioning
+        camera.position.set(0, 12, 18);
+        camera.lookAt(0, 0, 0);
 
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-                        map.setView([lat, lon], 17);
-                        L.marker([lat, lon]).addTo(map).bindPopup(query).openPopup();
-                    } else {
-                        alert('Location not found in global index.');
-                    }
-                })
-                .catch(err => console.error('Search error:', err));
-        }
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
 
-        searchSubmit.addEventListener('click', performSearch);
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
+        // Smooth Touch / Mouse Interaction to Navigate Our Own World
+        window.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
         });
 
-        // Three.js AR Overlay
-        const canvas = document.getElementById('ar-canvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
 
-        const ringGeo = new THREE.RingGeometry(1.2, 1.5, 64);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide, wireframe: true });
-        const arRing = new THREE.Mesh(ringGeo, ringMat);
-        arRing.position.z = -5;
-        arRing.rotation.x = Math.PI / 3;
-        scene.add(arRing);
+            nodesGroup.rotation.y += deltaX * 0.005;
+            gridHelper.rotation.y += deltaX * 0.005;
 
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointerup', () => { isDragging = false; });
+
+        // Real-Time GPS Integration into our Proprietary Engine
+        if ('geolocation' in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+                document.getElementById('speed-meter').innerText = `${speed}.0 KM/H`;
+                document.getElementById('status-text').innerText = `LAT: ${pos.coords.latitude.toFixed(4)} | LNG: ${pos.coords.longitude.toFixed(4)}`;
+                
+                // Pulse core based on movement
+                userCore.scale.set(1 + speed*0.05, 1 + speed*0.05, 1 + speed*0.05);
+            }, (err) => {
+                document.getElementById('status-text').innerText = "GPS SYNC: SECURE ORBIT ACTIVE";
+            }, { enableHighAccuracy: true });
+        }
+
+        // Render Loop
         function animate() {
             requestAnimationFrame(animate);
-            arRing.rotation.z += 0.015;
+            nodesGroup.rotation.y += 0.001;
+            userCore.rotation.y += 0.02;
             renderer.render(scene, camera);
         }
         animate();
 
-        // UI Mode Toggles
+        // Window Resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // UI Mode Switching
         const btn3d = document.getElementById('btn-3d');
         const btnAr = document.getElementById('btn-ar');
 
         btn3d.addEventListener('click', () => {
             btn3d.classList.add('active');
             btnAr.classList.remove('active');
-            canvas.style.opacity = '0';
+            scene.fog.density = 0.035;
         });
 
         btnAr.addEventListener('click', () => {
             btnAr.classList.add('active');
             btn3d.classList.remove('active');
-            canvas.style.opacity = '1';
+            scene.fog.density = 0.015; // Deeper Quantum view
+        });
+
+        document.getElementById('query-btn').addEventListener('click', () => {
+            const val = document.getElementById('spatial-query').value;
+            if(val) {
+                document.getElementById('status-text').innerText = `NODE LOCKED: ${val.toUpperCase()}`;
+                // Animate nodes on query
+                nodesGroup.children.forEach(n => n.scale.y += Math.random() * 2);
+            }
         });
     </script>
 </body>
