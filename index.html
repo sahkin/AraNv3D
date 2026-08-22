@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX - Sovereign Military & Cellular Intelligence System</title>
+    <title>AegisX Enterprise - Sovereign Multi-Core Defense Architecture</title>
     
     <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,77 +11,87 @@
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000206; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000103; font-family: 'Courier New', Courier, monospace; }
         
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* HUD Overlay Interface */
-        .hud-overlay {
+        /* Multi-Panel Tactical HUD Architecture */
+        .master-hud {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
         }
         
-        .top-panel { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
+        .top-deck { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
 
-        .search-box-container {
-            background: rgba(3, 7, 18, 0.96); backdrop-filter: blur(30px);
-            border: 1px solid rgba(56, 189, 248, 0.8); border-radius: 14px; padding: 10px 14px;
-            display: flex; gap: 10px; box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+        .search-module {
+            background: rgba(2, 6, 23, 0.96); backdrop-filter: blur(40px);
+            border: 1px solid rgba(56, 189, 248, 0.8); border-radius: 12px; padding: 10px 14px;
+            display: flex; gap: 10px; box-shadow: 0 30px 60px rgba(0,0,0,0.95);
         }
         .search-input {
-            flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-size: 14px; font-weight: 700;
+            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 13px; font-weight: 900; font-family: monospace;
         }
-        .search-input::placeholder { color: #475569; }
+        .search-input::placeholder { color: #1e293b; }
         
-        .search-btn {
-            background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 10px;
-            padding: 0 16px; color: white; font-weight: 900; font-size: 11px; letter-spacing: 1px; cursor: pointer;
-            box-shadow: 0 0 20px rgba(2, 132, 199, 0.7);
+        .exec-btn {
+            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 8px;
+            padding: 0 18px; color: white; font-weight: 900; font-size: 10px; letter-spacing: 2px; cursor: pointer;
+            box-shadow: 0 0 25px rgba(2, 132, 199, 0.8);
         }
 
-        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .telemetry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-        .telemetry-card {
-            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px);
-            border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 14px; padding: 10px 12px;
+        .tele-box {
+            background: rgba(2, 6, 23, 0.92); backdrop-filter: blur(30px);
+            border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 8px 12px;
             color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
         }
         
-        .label-glow { color: #38bdf8; font-size: 8px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; text-shadow: 0 0 8px rgba(56,189,248,0.6); }
-        .val-display { color: #ffffff; font-size: 13px; font-weight: 900; font-family: monospace; margin-top: 2px; }
-        .pulse-core { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 10px #4ade80; animation: pulse 1s infinite; }
+        .tele-label { color: #38bdf8; font-size: 7px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .tele-val { color: #ffffff; font-size: 12px; font-weight: 900; font-family: monospace; margin-top: 2px; }
+        .status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 10px #22c55e; animation: blink 1s infinite; }
         
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.5); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
-        /* Tactical Radar Widget */
+        /* Tactical Mini Radar */
         .radar-box {
-            position: absolute; bottom: 80px; right: 15px; width: 105px; height: 105px;
-            background: rgba(3, 7, 18, 0.88); border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 50%;
+            position: absolute; bottom: 85px; right: 14px; width: 110px; height: 110px;
+            background: rgba(2, 6, 23, 0.9); border: 1px solid rgba(56, 189, 248, 0.7); border-radius: 50%;
             pointer-events: none; z-index: 10; display: flex; align-items: center; justify-content: center;
             overflow: hidden; box-shadow: 0 0 30px rgba(2,132,199,0.5);
         }
         .radar-sweep {
             position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.7) 360deg);
-            animation: rotateRadar 2s linear infinite;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.8) 360deg);
+            animation: spin 2s linear infinite;
         }
-        @keyframes rotateRadar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .radar-center { width: 4px; height: 4px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; z-index: 2; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .radar-center { width: 4px; height: 4px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 10px #22c55e; z-index: 2; }
         .radar-blip {
             position: absolute; width: 5px; height: 5px; background: #ef4444; border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444; top: 30px; left: 65px; animation: blipPulse 1.5s infinite;
+            box-shadow: 0 0 8px #ef4444; top: 32px; left: 70px;
         }
-        @keyframes blipPulse { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
 
-        .control-bar { display: flex; gap: 8px; pointer-events: auto; width: 100%; max-width: 420px; margin: 0 auto; }
-        .quantum-btn {
-            flex: 1; padding: 12px; border: none; border-radius: 12px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 900; font-size: 9px;
-            letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+        /* Live Terminal Logs */
+        .terminal-box {
+            position: absolute; bottom: 85px; left: 14px; width: calc(100% - 150px); max-width: 320px;
+            background: rgba(2, 6, 23, 0.88); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;
+            padding: 8px 10px; pointer-events: none; z-index: 10; font-size: 8px; color: #38bdf8;
+            height: 70px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
+            backdrop-filter: blur(20px);
         }
-        .quantum-btn.active {
-            background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
-            border-color: #38bdf8; box-shadow: 0 0 25px rgba(56, 189, 248, 0.7);
+        .term-line { opacity: 0.85; margin-top: 2px; }
+
+        /* Multi-Mode Bottom Controls */
+        .bottom-deck { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 440px; margin: 0 auto; }
+        .mode-btn {
+            flex: 1; padding: 11px 4px; border: none; border-radius: 10px; background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 900; font-size: 8px;
+            letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center;
+        }
+        .mode-btn.active {
+            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff;
+            border-color: #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.8);
         }
     </style>
 </head>
@@ -95,37 +105,52 @@
         <div class="radar-center"></div>
     </div>
 
-    <div class="hud-overlay">
-        <div class="top-panel">
-            <div class="search-box-container">
-                <input type="text" class="search-input" id="global-search" placeholder="Enter target city or sector (e.g. Islamabad)...">
-                <button class="search-btn" id="exec-btn">LOCK</button>
+    <div class="terminal-box" id="terminal-logs">
+        <div class="term-line">> [INIT] AegisX Multi-Core Architecture Loaded.</div>
+        <div class="term-line">> [MATRIX] 3D Globe, Cellular Triangulation & Fencing Online.</div>
+        <div class="term-line">> [SYSTEM] Awaiting geospatial coordinate vector...</div>
+    </div>
+
+    <div class="master-hud">
+        <div class="top-deck">
+            <div class="search-module">
+                <input type="text" class="search-input" id="global-search" placeholder="ENTER TARGET SECTOR (e.g. Islamabad, London)...">
+                <button class="exec-btn" id="exec-btn">LOCK</button>
             </div>
 
-            <div class="telemetry-grid">
-                <div class="telemetry-card">
-                    <div class="label-glow"><span class="pulse-core"></span>TOWER & GEO-FENCE</div>
-                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8;">5G MATRIX LINKED</div>
+            <div class="telemetry-row">
+                <div class="tele-box">
+                    <div class="tele-label"><span class="status-dot"></span>SYS STATUS</div>
+                    <div class="tele-val" id="status-display">MULTI-CORE LINKED</div>
                 </div>
-                <div class="telemetry-card" style="text-align: right;">
-                    <div class="label-glow">EXACT COORDS</div>
-                    <div class="val-display" id="coords-val" style="font-size: 11px;">00.0000, 00.0000</div>
+                <div class="tele-box" style="text-align: right;">
+                    <div class="tele-label">EXACT COORDS</div>
+                    <div class="tele-val" id="coords-val">00.0000, 00.0000</div>
                 </div>
             </div>
         </div>
 
-        <div class="control-bar">
-            <button class="quantum-btn active" id="btn-globe">3D SATELLITE GLOBE</button>
-            <button class="quantum-btn" id="btn-towers">CELL TOWERS MATRIX</button>
-            <button class="quantum-btn" id="btn-fencing">GEO-FENCE ZONE</button>
+        <div class="bottom-deck">
+            <button class="mode-btn active" id="btn-globe">3D GLOBE</button>
+            <button class="mode-btn" id="btn-towers">CELL TOWERS</button>
+            <button class="mode-btn" id="btn-fencing">GEO-FENCE</button>
         </div>
     </div>
 
     <script>
-        // High-Precision Sovereign 3D Engine
+        function logTerm(msg) {
+            const box = document.getElementById('terminal-logs');
+            const line = document.createElement('div');
+            line.className = 'term-line';
+            line.innerText = `> ${msg}`;
+            box.appendChild(line);
+            if (box.childNodes.length > 5) box.removeChild(box.firstChild);
+        }
+
+        // Three.js Core Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000206, 0.02);
+        scene.fog = new THREE.FogExp2(0x000103, 0.025);
 
         const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -141,85 +166,78 @@
         controls.minDistance = 5.2;
         controls.maxDistance = 35;
 
-        // Lighting
+        // Lighting System
         scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-        const sunLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
-        sunLight.position.set(30, 30, 30);
-        scene.add(sunLight);
+        const sun = new THREE.DirectionalLight(0x38bdf8, 2.5);
+        sun.position.set(30, 30, 30);
+        scene.add(sun);
 
-        // Earth Globe Creation
+        // Earth Globe Engine
         const radius = 5;
         const sphereGeo = new THREE.SphereGeometry(radius, 64, 64);
-        
         const textureLoader = new THREE.TextureLoader();
-        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        const earthTex = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
         
-        const sphereMat = new THREE.MeshPhongMaterial({
-            map: earthTexture,
-            shininess: 25
-        });
+        const sphereMat = new THREE.MeshPhongMaterial({ map: earthTex, shininess: 20 });
         const earthSphere = new THREE.Mesh(sphereGeo, sphereMat);
         scene.add(earthSphere);
 
-        // Atmosphere Glow Layer
-        const glowGeo = new THREE.SphereGeometry(radius * 1.06, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
-            transparent: true,
-            opacity: 0.18,
-            side: THREE.BackSide
-        });
+        // Atmosphere Glow
+        const glowGeo = new THREE.SphereGeometry(radius * 1.05, 32, 32);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.15, side: THREE.BackSide });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
-        // Target Marker Group (Precision Pin & Radar Ring)
+        // Target Precision Group
         const targetGroup = new THREE.Group();
-        const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.9, 16);
-        const pinMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
-        const pinMesh = new THREE.Mesh(pinGeo, pinMat);
-        pinMesh.position.y = 0.45;
-        targetGroup.add(pinMesh);
+        const pinGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 16);
+        const pinMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+        const pin = new THREE.Mesh(pinGeo, pinMat);
+        pin.position.y = 0.4;
+        targetGroup.add(pin);
 
-        const ringGeo = new THREE.RingGeometry(0.25, 0.3, 32);
-        ringGeo.rotateX(Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
-        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-        targetGroup.add(ringMesh);
+        const targetRingGeo = new THREE.RingGeometry(0.3, 0.35, 32);
+        targetRingGeo.rotateX(Math.PI / 2);
+        const targetRingMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+        targetGroup.add(new THREE.Mesh(targetRingGeo, targetRingMat));
         targetGroup.visible = false;
         scene.add(targetGroup);
 
-        // Cellular Tower Nodes Group (Simulated Telecom Infrastructure)
+        // Cellular Telecom Towers & Laser Matrix Group
         const towersGroup = new THREE.Group();
-        const towerGeo = new THREE.ConeGeometry(0.08, 0.4, 8);
-        const towerMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b }); // Amber tower nodes
+        const towerGeo = new THREE.ConeGeometry(0.07, 0.35, 8);
+        const towerMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
         
-        // Scatter sample telecom tower coordinates on globe
         const towerCoords = [
-            {lat: 33.6844, lon: 73.0479}, // Islamabad
-            {lat: 31.5497, lon: 74.3436}, // Lahore
-            {lat: 24.8607, lon: 67.0011}, // Karachi
-            {lat: 51.5074, lon: -0.1278}, // London
-            {lat: 40.7128, lon: -74.0060}  // New York
+            {lat: 33.6844, lon: 73.0479}, {lat: 31.5497, lon: 74.3436}, 
+            {lat: 24.8607, lon: 67.0011}, {lat: 51.5074, lon: -0.1278}, {lat: 40.7128, lon: -74.0060},
+            {lat: 48.8566, lon: 2.3522}, {lat: 35.6762, lon: 139.6503}
         ];
 
-        towerCoords.forEach(coord => {
-            const pos = getVector3FromLatLon(coord.lat, coord.lon, radius);
-            const tower = new THREE.Mesh(towerGeo, towerMat);
-            tower.position.copy(pos);
-            tower.lookAt(0, 0, 0);
-            tower.rotateX(Math.PI / 2);
-            towersGroup.add(tower);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.4 });
+
+        towerCoords.forEach(c => {
+            const pos = getVector3FromLatLon(c.lat, c.lon, radius);
+            const tMesh = new THREE.Mesh(towerGeo, towerMat);
+            tMesh.position.copy(pos);
+            tMesh.lookAt(0, 0, 0);
+            tMesh.rotateX(Math.PI / 2);
+            towersGroup.add(tMesh);
+
+            const points = [new THREE.Vector3(0,0,0), pos];
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(lineGeo, lineMat);
+            towersGroup.add(line);
         });
         towersGroup.visible = false;
         scene.add(towersGroup);
 
-        // Geo-Fencing Security Zone (Pulsing Shield Ring)
+        // Geo-Fencing Security Ring
         const fenceGroup = new THREE.Group();
-        const fenceGeo = new THREE.RingGeometry(0.8, 0.85, 64);
+        const fenceGeo = new THREE.RingGeometry(0.75, 0.82, 64);
         fenceGeo.rotateX(Math.PI / 2);
-        const fenceMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
-        const fenceMesh = new THREE.Mesh(fenceGeo, fenceMat);
-        fenceGroup.add(fenceMesh);
+        const fenceMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+        fenceGroup.add(new THREE.Mesh(fenceGeo, fenceMat));
         fenceGroup.visible = false;
         scene.add(fenceGroup);
 
@@ -235,12 +253,13 @@
             return new THREE.Vector3(x, y, z);
         }
 
-        // Target Lock & Geocoding Engine
+        // Target Lock & Geocoding Core
         function executeTargetLock() {
             const query = document.getElementById('global-search').value.trim();
             if (!query) return;
 
-            document.getElementById('status-display').innerText = `TRIANGULATING SATELLITE...`;
+            document.getElementById('status-display').innerText = `TRIANGULATING...`;
+            logTerm(`Executing multi-point GIS query for: "${query}"`);
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
@@ -251,6 +270,7 @@
 
                         document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.split(',')[0]}`;
                         document.getElementById('coords-val').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                        logTerm(`Target locked -> Lat: ${lat.toFixed(3)}, Lon: ${lon.toFixed(3)}`);
 
                         const pos = getVector3FromLatLon(lat, lon, radius);
                         targetGroup.position.copy(pos);
@@ -258,14 +278,13 @@
                         targetGroup.rotateX(Math.PI / 2);
                         targetGroup.visible = true;
 
-                        // Position geo-fence shield over target
                         fenceGroup.position.copy(pos);
                         fenceGroup.lookAt(0, 0, 0);
 
-                        // Smooth camera transition to target coordinates
-                        const targetCamPos = getVector3FromLatLon(lat, lon, radius * 1.7);
+                        // Smooth camera zoom
+                        const targetCamPos = getVector3FromLatLon(lat, lon, radius * 1.6);
                         let step = 0;
-                        const maxSteps = 35;
+                        const maxSteps = 30;
                         const startPos = camera.position.clone();
 
                         function smoothZoom() {
@@ -282,9 +301,13 @@
 
                     } else {
                         document.getElementById('status-display').innerText = `SECTOR NOT FOUND`;
+                        logTerm(`Error: Sector resolution returned null.`);
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('status-display').innerText = `UPLINK ERROR`;
+                });
         }
 
         document.getElementById('exec-btn').addEventListener('click', executeTargetLock);
@@ -292,14 +315,14 @@
             if (e.key === 'Enter') executeTargetLock();
         });
 
-        // Mode Switchers for Towers & Geo-Fencing
+        // Mode Switchers
         document.getElementById('btn-globe').addEventListener('click', () => {
             document.getElementById('btn-globe').classList.add('active');
             document.getElementById('btn-towers').classList.remove('active');
             document.getElementById('btn-fencing').classList.remove('active');
             towersGroup.visible = false;
             fenceGroup.visible = false;
-            earthSphere.visible = true;
+            logTerm(`Active Mode: 3D Planetary Satellite Globe.`);
         });
 
         document.getElementById('btn-towers').addEventListener('click', () => {
@@ -307,7 +330,8 @@
             document.getElementById('btn-globe').classList.remove('active');
             document.getElementById('btn-fencing').classList.remove('active');
             towersGroup.visible = true;
-            document.getElementById('status-display').innerText = `CELL TOWERS MATRIX ACTIVE`;
+            document.getElementById('status-display').innerText = `CELL TOWERS MATRIX`;
+            logTerm(`Active Mode: Cellular Towers & Signal Links.`);
         });
 
         document.getElementById('btn-fencing').addEventListener('click', () => {
@@ -315,7 +339,8 @@
             document.getElementById('btn-globe').classList.remove('active');
             document.getElementById('btn-towers').classList.remove('active');
             fenceGroup.visible = true;
-            document.getElementById('status-display').innerText = `GEO-FENCE SECURITY ENGAGED`;
+            document.getElementById('status-display').innerText = `GEO-FENCE SECURITY`;
+            logTerm(`Active Mode: Geo-Fencing Perimeter Shield.`);
         });
 
         // Animation Loop
@@ -323,9 +348,9 @@
             requestAnimationFrame(animate);
             controls.update();
             if (!targetGroup.visible) {
-                earthSphere.rotation.y += 0.0004;
-                glowSphere.rotation.y += 0.0005;
-                towersGroup.rotation.y += 0.0004;
+                earthSphere.rotation.y += 0.0003;
+                glowSphere.rotation.y += 0.0004;
+                towersGroup.rotation.y += 0.0003;
             }
             renderer.render(scene, camera);
         }
