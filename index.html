@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX - Ultimate Military & Cellular Intelligence System</title>
+    <title>AegisX - Tactical Geospatial & Intelligence Command</title>
     
-    <!-- Three.js for 3D Globe & Spatial Rendering -->
+    <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000208; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Military Command HUD Interface */
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
@@ -24,59 +23,59 @@
         .top-panel { display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
 
         .search-box-container {
-            background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(30px);
-            border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 16px; padding: 12px 16px;
-            display: flex; gap: 10px; box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+            background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(25px);
+            border: 1px solid rgba(56, 189, 248, 0.7); border-radius: 14px; padding: 10px 14px;
+            display: flex; gap: 10px; box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
         .search-input {
             flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-size: 14px; font-weight: 700;
         }
-        .search-input::placeholder { color: #475569; }
+        .search-input::placeholder { color: #64748b; }
         
         .search-btn {
-            background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 10px;
             padding: 0 16px; color: white; font-weight: 900; font-size: 11px; letter-spacing: 1px; cursor: pointer;
-            box-shadow: 0 0 20px rgba(2, 132, 199, 0.7);
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.6);
         }
 
         .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
         .telemetry-card {
-            background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(25px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 16px; padding: 12px 14px;
+            background: rgba(3, 7, 18, 0.9); backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 14px; padding: 10px 12px;
             color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
         }
         
-        .label-glow { color: #38bdf8; font-size: 9px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.7); }
-        .val-display { color: #ffffff; font-size: 15px; font-weight: 900; font-family: monospace; margin-top: 2px; }
-        .pulse-core { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 12px #4ade80; animation: pulse 1.5s infinite; }
+        .label-glow { color: #38bdf8; font-size: 9px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; }
+        .val-display { color: #ffffff; font-size: 14px; font-weight: 900; font-family: monospace; margin-top: 2px; }
+        .pulse-core { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 10px #4ade80; animation: pulse 1.2s infinite; }
         
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.4); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* Advanced Tactical Radar Widget */
+        /* Radar Widget */
         .radar-box {
-            position: absolute; bottom: 85px; right: 15px; width: 110px; height: 110px;
+            position: absolute; bottom: 85px; right: 15px; width: 100px; height: 100px;
             background: rgba(3, 7, 18, 0.85); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 50%;
             pointer-events: none; z-index: 10; display: flex; align-items: center; justify-content: center;
-            overflow: hidden; box-shadow: 0 0 30px rgba(2,132,199,0.5);
+            overflow: hidden; box-shadow: 0 0 25px rgba(2,132,199,0.4);
         }
         .radar-sweep {
             position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.5) 360deg);
-            animation: rotateRadar 3s linear infinite;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.6) 360deg);
+            animation: rotateRadar 2.5s linear infinite;
         }
         @keyframes rotateRadar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .radar-center { width: 5px; height: 5px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; z-index: 2; }
+        .radar-center { width: 4px; height: 4px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 8px #4ade80; z-index: 2; }
 
-        .control-bar { display: flex; gap: 10px; pointer-events: auto; width: 100%; max-width: 420px; margin: 0 auto; }
+        .control-bar { display: flex; gap: 10px; pointer-events: auto; width: 100%; max-width: 400px; margin: 0 auto; }
         .quantum-btn {
-            flex: 1; padding: 14px; border: none; border-radius: 14px; background: rgba(15, 23, 42, 0.95);
+            flex: 1; padding: 12px; border: none; border-radius: 12px; background: rgba(15, 23, 42, 0.95);
             border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: 900; font-size: 10px;
-            letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+            letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
         }
         .quantum-btn.active {
             background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
-            border-color: #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.7);
+            border-color: #38bdf8; box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
         }
     </style>
 </head>
@@ -84,7 +83,6 @@
 
     <div id="canvas-container"></div>
 
-    <!-- Military Radar Widget -->
     <div class="radar-box">
         <div class="radar-sweep"></div>
         <div class="radar-center"></div>
@@ -93,57 +91,55 @@
     <div class="hud-overlay">
         <div class="top-panel">
             <div class="search-box-container">
-                <input type="text" class="search-input" id="global-search" placeholder="Enter target country, city or sector...">
+                <input type="text" class="search-input" id="global-search" placeholder="Enter target city, region or country...">
                 <button class="search-btn" id="exec-btn">LOCK</button>
             </div>
 
             <div class="telemetry-grid">
                 <div class="telemetry-card">
-                    <div class="label-glow"><span class="pulse-core"></span>TOWER & SAT MATRIX</div>
-                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8;">ACTIVE 5G / SAT LINK</div>
+                    <div class="label-glow"><span class="pulse-core"></span>GRID MATRIX</div>
+                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8;">SYSTEM READY</div>
                 </div>
                 <div class="telemetry-card" style="text-align: right;">
-                    <div class="label-glow">VELOCITY VECTOR</div>
-                    <div class="val-display" id="velocity-val">0.0 KM/H</div>
+                    <div class="label-glow">TARGET LAT/LON</div>
+                    <div class="val-display" id="coords-val" style="font-size: 11px;">00.0000, 00.0000</div>
                 </div>
             </div>
         </div>
 
         <div class="control-bar">
-            <button class="quantum-btn active" id="btn-globe">PLANETARY GLOBE</button>
-            <button class="quantum-btn" id="btn-matrix">TACTICAL GRID</button>
+            <button class="quantum-btn active" id="btn-globe">SATELLITE VIEW</button>
+            <button class="quantum-btn" id="btn-matrix">TACTICAL WIREFRAME</button>
         </div>
     </div>
 
     <script>
-        // AegisX 3D Core Engine Initialization
+        // Precision 3D Engine Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000208, 0.025);
+        scene.fog = new THREE.FogExp2(0x010409, 0.02);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Fluid Orbit Controls with Wide Zoom Range
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.rotateSpeed = 0.8;
+        controls.dampingFactor = 0.06;
+        controls.rotateSpeed = 0.7;
         controls.zoomSpeed = 1.2;
-        controls.minDistance = 5.5;
-        controls.maxDistance = 40;
+        controls.minDistance = 5.2;
+        controls.maxDistance = 30;
 
-        // Lighting System
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-        scene.add(ambientLight);
-        const sunLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
-        sunLight.position.set(30, 30, 30);
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+        const sunLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+        sunLight.position.set(25, 25, 25);
         scene.add(sunLight);
 
-        // Earth Globe Creation
+        // Earth Globe Geometry & High-Definition Mapping
         const radius = 5;
         const sphereGeo = new THREE.SphereGeometry(radius, 64, 64);
         
@@ -152,33 +148,44 @@
         
         const sphereMat = new THREE.MeshPhongMaterial({
             map: earthTexture,
-            shininess: 30
+            shininess: 20
         });
         const earthSphere = new THREE.Mesh(sphereGeo, sphereMat);
         scene.add(earthSphere);
 
-        // Atmosphere Glow Overlay
-        const glowGeo = new THREE.SphereGeometry(radius * 1.07, 32, 32);
+        // Atmosphere Glow
+        const glowGeo = new THREE.SphereGeometry(radius * 1.05, 32, 32);
         const glowMat = new THREE.MeshBasicMaterial({
             color: 0x38bdf8,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.15,
             side: THREE.BackSide
         });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
-        // Target Lock Indicator Pin
-        const pinGeo = new THREE.ConeGeometry(0.18, 0.5, 16);
+        // Accurate Target Lock Marker (Glowing Pillar & Core)
+        const markerGroup = new THREE.Group();
+        
+        const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 16);
         const pinMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
-        const targetMarker = new THREE.Mesh(pinGeo, pinMat);
-        targetMarker.visible = false;
-        scene.add(targetMarker);
+        const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+        pinMesh.position.y = 0.4;
+        markerGroup.add(pinMesh);
 
-        camera.position.set(0, 4, 15);
+        const ringGeo = new THREE.RingGeometry(0.2, 0.25, 32);
+        ringGeo.rotateX(Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        markerGroup.add(ringMesh);
+
+        markerGroup.visible = false;
+        scene.add(markerGroup);
+
+        camera.position.set(0, 3, 14);
         controls.update();
 
-        // Coordinate Transformation
+        // Exact Correct Spherical to Cartesian Math Formula
         function getVector3FromLatLon(lat, lon, r) {
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
@@ -188,12 +195,12 @@
             return new THREE.Vector3(x, y, z);
         }
 
-        // Global Target Geocoding & Tower Triangulation Simulation
+        // Target Geocoding & Precision Alignment
         function executeTargetLock() {
             const query = document.getElementById('global-search').value.trim();
             if (!query) return;
 
-            document.getElementById('status-display').innerText = `TRIANGULATING TOWER NODES...`;
+            document.getElementById('status-display').innerText = `SEARCHING GRID...`;
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
@@ -202,23 +209,46 @@
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
 
-                        document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.substring(0, 20)}...`;
+                        document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.split(',')[0].substring(0, 15)}`;
+                        document.getElementById('coords-val').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
 
+                        // Position Marker on Globe Surface
                         const pos = getVector3FromLatLon(lat, lon, radius);
-                        targetMarker.position.copy(pos);
-                        targetMarker.lookAt(0, 0, 0);
-                        targetMarker.visible = true;
+                        markerGroup.position.copy(pos);
+                        
+                        // Align marker normal to surface center
+                        markerGroup.lookAt(0, 0, 0);
+                        markerGroup.rotateX(Math.PI / 2);
+                        markerGroup.visible = true;
 
-                        // Smooth transition vector to target
-                        controls.target.set(0, 0, 0);
-                        camera.position.set(pos.x * 2.1, pos.y * 2.1, pos.z * 2.1);
-                        controls.update();
+                        // Smooth transition vector zoom directly onto target coordinates
+                        const targetCamPos = getVector3FromLatLon(lat, lon, radius * 1.8);
+                        
+                        let currentStep = 0;
+                        const totalSteps = 40;
+                        const startCamPos = camera.position.clone();
+
+                        function smoothTransition() {
+                            if (currentStep <= totalSteps) {
+                                const t = currentStep / totalSteps;
+                                // Ease out quad
+                                const ease = t * (2 - t);
+                                camera.position.lerpVectors(startCamPos, targetCamPos, ease);
+                                controls.update();
+                                currentStep++;
+                                requestAnimationFrame(smoothTransition);
+                            }
+                        }
+                        smoothTransition();
 
                     } else {
-                        alert('Target sector unreachable.');
+                        document.getElementById('status-display').innerText = `TARGET NOT FOUND`;
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('status-display').innerText = `API ERROR`;
+                });
         }
 
         document.getElementById('exec-btn').addEventListener('click', executeTargetLock);
@@ -226,7 +256,7 @@
             if (e.key === 'Enter') executeTargetLock();
         });
 
-        // UI Layer Switchers
+        // Toggle UI Layers
         document.getElementById('btn-globe').addEventListener('click', () => {
             document.getElementById('btn-globe').classList.add('active');
             document.getElementById('btn-matrix').classList.remove('active');
@@ -244,25 +274,18 @@
             earthSphere.material.needsUpdate = true;
         });
 
-        // Real GPS Telemetry Feed
-        if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition((pos) => {
-                const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
-                document.getElementById('velocity-val').innerText = `${speed}.0 KM/H`;
-            }, (err) => {}, { enableHighAccuracy: true });
-        }
-
-        // Render Loop
+        // Animation Render Loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            earthSphere.rotation.y += 0.0004;
-            glowSphere.rotation.y += 0.0005;
+            if (!markerGroup.visible) {
+                earthSphere.rotation.y += 0.0003;
+                glowSphere.rotation.y += 0.0004;
+            }
             renderer.render(scene, camera);
         }
         animate();
 
-        // Window Resize Listener
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
