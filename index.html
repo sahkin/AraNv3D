@@ -3,24 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX Sovereign Intelligence - Tactical Command Deck</title>
+    <title>AegisX Sovereign Intelligence - 3D Planetary Command Deck</title>
     
-    <!-- Leaflet CSS & JS CDN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Three.js for 3D Planetary Globe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: 'Courier New', Courier, monospace; }
         
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
-
-        /* Tactical Night & Thermal Shield over Satellite */
-        .night-shield {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: radial-gradient(circle, rgba(2,6,23,0.2) 0%, rgba(1,3,10,0.85) 90%);
-            pointer-events: none; z-index: 400; mix-blend-mode: multiply;
-        }
+        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
 
         /* Tactical HUD Layer */
         .hud-wrapper {
@@ -28,7 +20,7 @@
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
         }
         
-        .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 500px; margin: 0 auto; }
+        .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
 
         .search-box {
             background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px);
@@ -40,17 +32,17 @@
         }
         .search-field::placeholder { color: #475569; }
         
-        .lock-action-btn {
+        .sync-btn {
             background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 6px;
-            padding: 0 14px; color: white; font-weight: bold; font-size: 9px; letter-spacing: 1px; cursor: pointer;
+            padding: 0 16px; color: white; font-weight: bold; font-size: 10px; letter-spacing: 1px; cursor: pointer;
             box-shadow: 0 0 15px rgba(2, 132, 199, 0.6);
         }
 
         .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
         .tele-panel {
-            background: rgba(2, 6, 23, 0.92); backdrop-filter: blur(15px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 6px 10px;
+            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 8px 12px;
             color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
         }
         
@@ -58,20 +50,22 @@
         .tele-data { color: #ffffff; font-size: 11px; font-weight: bold; font-family: monospace; margin-top: 2px; }
         .active-dot { width: 5px; height: 5px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 4px; box-shadow: 0 0 8px #22c55e; }
 
-        /* Geo-Fence Data Recorder Panel (Hidden by default, shows when Geo-Fence is active) */
-        .geofence-log-panel {
+        /* AI & Intelligence Live Stream Log Box */
+        .intelligence-panel {
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(239, 68, 68, 0.8); border-radius: 8px; padding: 8px;
-            color: #f8fafc; max-height: 120px; overflow-y: auto; display: none; pointer-events: auto;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); margin-top: 6px;
+            border: 1px solid rgba(34, 197, 94, 0.7); border-radius: 8px; padding: 8px 10px;
+            color: #f8fafc; max-height: 110px; overflow-y: auto; pointer-events: auto;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
         }
-        .geofence-log-title { color: #ef4444; font-size: 8px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; display: flex; justify-content: space-between; }
-        .log-entries { font-size: 9px; color: #cbd5e1; font-family: monospace; line-height: 1.3; }
+        .ai-title { color: #22c55e; font-size: 8px; font-weight: bold; letter-spacing: 1px; display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .ai-logs { font-size: 9px; color: #cbd5e1; font-family: monospace; line-height: 1.3; }
 
-        /* Bottom Controls */
-        .hud-bottom { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 400px; margin: 0 auto; }
+        /* Bottom Controls & Radar Widget Area */
+        .hud-bottom-area { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; margin: 0 auto; pointer-events: auto; }
+        
+        .hud-bottom { display: flex; gap: 6px; }
         .nav-btn {
-            flex: 1; padding: 10px 4px; border-radius: 8px; background: rgba(15, 23, 42, 0.9);
+            flex: 1; padding: 10px 4px; border-radius: 8px; background: rgba(15, 23, 42, 0.95);
             border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; font-size: 8px;
             letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center;
         }
@@ -80,256 +74,281 @@
             box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
         }
 
-        /* Custom Sci-Fi Target Pulse */
-        .tactical-pulse {
-            width: 24px; height: 24px; background: rgba(34, 197, 94, 0.3);
-            border: 2px solid #22c55e; border-radius: 50%; box-shadow: 0 0 20px #22c55e;
-            animation: pulse-ring 1.5s infinite;
+        /* Radar Widget Container (Like Screenshot Bottom Right) */
+        .radar-widget-box {
+            position: absolute; bottom: 85px; right: 15px; width: 120px; height: 120px;
+            background: rgba(2, 6, 23, 0.85); border: 1px solid rgba(56, 189, 248, 0.5);
+            border-radius: 50%; pointer-events: auto; box-shadow: 0 0 25px rgba(2, 132, 199, 0.4);
+            overflow: hidden; z-index: 1100; display: flex; align-items: center; justify-content: center;
         }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.6); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
+        #radar-canvas { width: 100%; height: 100%; display: block; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
-    <div class="night-shield"></div>
+    <div id="globe-container"></div>
+
+    <!-- Live Radar Widget (Bottom Right) -->
+    <div class="radar-widget-box" id="radar-box" title="Tactical Airborne & Jet Radar">
+        <canvas id="radar-canvas" width="120" height="120"></canvas>
+    </div>
 
     <div class="hud-wrapper">
         <div class="hud-top">
             <div class="search-box">
-                <input type="text" class="search-field" id="target-input" placeholder="ENTER CITY/SECTOR (e.g. Abbottabad)...">
-                <button class="lock-action-btn" id="lock-btn">LOCK</button>
+                <input type="text" class="search-field" id="target-input" placeholder="PAKISTAN // SECTOR LOCK...">
+                <button class="sync-btn" id="sync-btn">SYNC</button>
             </div>
 
             <div class="telemetry-bar">
                 <div class="tele-panel">
-                    <div class="tele-title"><span class="active-dot"></span>SYS TIME / STATUS</div>
-                    <div class="tele-data" id="sys-time">00:00:00 UTC</div>
+                    <div class="tele-title"><span class="active-dot"></span>TOWER & SAT LINK</div>
+                    <div class="tele-data" id="link-status">LOCKED: Pakistan...</div>
                 </div>
                 <div class="tele-panel" style="text-align: right;">
-                    <div class="tele-title">COORDINATES</div>
-                    <div class="tele-data" id="coord-display">33.68, 73.04</div>
+                    <div class="tele-title">VELOCITY VECTOR</div>
+                    <div class="tele-data" id="velocity-data">0.0 KM/H</div>
                 </div>
             </div>
 
-            <!-- Geo-Fence Data Recording & Telemetry Log Box -->
-            <div class="geofence-log-panel" id="fence-log-box">
-                <div class="geofence-log-title">
-                    <span>GEO-FENCE PERIMETER & DATA RECORDER</span>
-                    <span id="log-count" style="color: #38bdf8;">0 RECORDS</span>
+            <!-- AI Autonomous Intelligence & Geo-Fence / IMSI Tracker Feed -->
+            <div class="intelligence-panel">
+                <div class="ai-title">
+                    <span>AEGIS-X AI & AGENCY TELEMETRY STREAM</span>
+                    <span id="ai-count" style="color: #38bdf8;">ACTIVE</span>
                 </div>
-                <div class="log-entries" id="log-entries-content">
-                    [SYSTEM] Geo-fence monitoring offline...
+                <div class="ai-logs" id="ai-log-content">
+                    [SYSTEM] 3D Planetary Globe initialized. Encrypted satellite constellations active.
                 </div>
             </div>
         </div>
 
-        <div class="hud-bottom">
-            <button class="nav-btn active" id="mode-sat">SATELLITE</button>
-            <button class="nav-btn" id="mode-towers">CELL TOWERS</button>
-            <button class="nav-btn" id="mode-fence">GEO-FENCE</button>
+        <div class="hud-bottom-area">
+            <div class="hud-bottom">
+                <button class="nav-btn active" id="mode-globe">3D PLANETARY GLOBE</button>
+                <button class="nav-btn" id="mode-matrix">MATRIX GRID</button>
+                <button class="nav-btn" id="mode-towers">SIGINT TOWERS</button>
+                <button class="nav-btn" id="mode-tracker">IMSI / IP TRACKER</button>
+                <button class="nav-btn" id="mode-fence">GEO-FENCE</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([33.6844, 73.0479], 5);
+        // --- THREE.JS 3D PLANETARY GLOBE SETUP ---
+        const container = document.getElementById('globe-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
 
-        // Esri Satellite Base Layer
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19
-        }).addTo(map);
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x38bdf8, 2, 50);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
 
-        // Boundaries & Place Names Layer
-        L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19
-        }).addTo(map);
+        // Earth Globe Sphere with Wireframe & Matrix Glow
+        const globeRadius = 3.5;
+        const geometry = new THREE.SphereGeometry(globeRadius, 64, 64);
+        
+        // Custom Shader Material for High-Tech Agency Globe
+        const globeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0a192f,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.65
+        });
+        const earthGlobe = new THREE.Mesh(geometry, globeMaterial);
+        scene.add(earthGlobe);
 
-        let currentMarker = null;
-        let currentCircle = null;
-        let towerLayers = [];
-        let activeMode = 'sat';
-        let lastCenterLat = 33.6844;
-        let lastCenterLon = 73.0479;
-        let fenceLogs = [];
+        // Solid inner core for depth
+        const coreMaterial = new THREE.MeshBasicMaterial({ color: 0x020617 });
+        const earthCore = new THREE.Mesh(new THREE.SphereGeometry(globeRadius - 0.02, 32, 32), coreMaterial);
+        scene.add(earthCore);
 
-        // Live UTC Clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('sys-time').innerText = now.toUTCString().split(' ')[4] + " UTC";
-        }, 1000);
+        camera.position.z = 11;
 
-        map.on('move', () => {
-            const center = map.getCenter();
-            lastCenterLat = center.lat;
-            lastCenterLon = center.lng;
-            document.getElementById('coord-display').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
+        // Target Marker on Globe (e.g. Pakistan / Islamabad)
+        const markerGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+        const markerMaterial = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+        const targetMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+        // Position roughly around Pakistan coordinates on the sphere
+        targetMarker.position.set(1.8, 1.5, 2.4);
+        scene.add(targetMarker);
+
+        // Orbit / Rotation control variables
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let autoRotate = true;
+
+        window.addEventListener('mousedown', (e) => { isDragging = true; autoRotate = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                earthGlobe.rotation.y += deltaX * 0.005;
+                earthCore.rotation.y += deltaX * 0.005;
+                earthGlobe.rotation.x += deltaY * 0.005;
+                earthCore.rotation.x += deltaY * 0.005;
+            }
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Touch support for mobile
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                autoRotate = false;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+                earthGlobe.rotation.y += deltaX * 0.005;
+                earthCore.rotation.y += deltaX * 0.005;
+                earthGlobe.rotation.x += deltaY * 0.005;
+                earthCore.rotation.x += deltaY * 0.005;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            if (autoRotate) {
+                earthGlobe.rotation.y += 0.002;
+                earthCore.rotation.y += 0.002;
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        function addFenceLog(message) {
-            const timestamp = new Date().toUTCString().split(' ')[4];
-            fenceLogs.unshift(`[${timestamp}] ${message}`);
-            if (fenceLogs.max > 20) fenceLogs.pop();
+        // --- RADAR CANVAS SWEEP (Fighter Jets & Air Traffic Tracker) ---
+        const radarCanvas = document.getElementById('radar-canvas');
+        const ctx = radarCanvas.getContext('2d');
+        let radarAngle = 0;
+        
+        // Simulated aircraft/jets on radar
+        const radarTargets = [
+            { x: 35, y: 40, label: 'F-16 Fighter' },
+            { x: 80, y: 30, label: 'Commercial Flight' },
+            { x: 60, y: 85, label: 'UAV Recon' }
+        ];
+
+        function drawRadar() {
+            ctx.clearRect(0, 0, 120, 120);
             
-            document.getElementById('log-entries-content').innerHTML = fenceLogs.join('<br>');
-            document.getElementById('log-count').innerText = `${fenceLogs.length} LOGS`;
+            // Radar Background Rings
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(60, 60, 50, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(60, 60, 30, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(60, 60, 10, 0, Math.PI * 2); ctx.stroke();
+
+            // Crosshairs
+            ctx.beginPath(); ctx.moveTo(60, 10); ctx.lineTo(60, 110); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, 60); ctx.lineTo(110, 60); ctx.stroke();
+
+            // Sweep Line
+            ctx.save();
+            ctx.translate(60, 60);
+            ctx.rotate(radarAngle);
+            const gradient = ctx.createLinearGradient(0, 0, 50, 0);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, 50, -0.4, 0);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+            ctx.restore();
+
+            // Draw blips (Fighter Jets / Planes)
+            radarTargets.forEach(t => {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            radarAngle += 0.04;
+            requestAnimationFrame(drawRadar);
+        }
+        drawRadar();
+
+        // --- INTELLIGENCE LOG SYSTEM & CONTROLS ---
+        let aiLogs = [];
+        function pushAILog(msg) {
+            const time = new Date().toUTCString().split(' ')[4];
+            aiLogs.unshift(`[${time}] ${msg}`);
+            if (aiLogs.length > 20) aiLogs.pop();
+            document.getElementById('ai-log-content').innerHTML = aiLogs.join('<br>');
         }
 
-        function performLock() {
-            const query = document.getElementById('target-input').value.trim();
-            if (!query) return;
-
-            document.getElementById('sys-time').innerText = "TRIANGULATING...";
-
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-                        const displayName = data[0].display_name.split(',')[0];
-
-                        lastCenterLat = lat;
-                        lastCenterLon = lon;
-                        map.flyTo([lat, lon], 15, { duration: 1.5 });
-
-                        if (currentMarker) map.removeLayer(currentMarker);
-                        
-                        const customIcon = L.divIcon({
-                            className: 'tactical-pulse',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                        });
-
-                        currentMarker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-                        currentMarker.bindPopup(`<b style="color:#0284c7;">LOCKED SECTOR: ${displayName}</b>`).openPopup();
-
-                        document.getElementById('sys-time').innerText = "LOCK ACQUIRED";
-
-                        if (activeMode === 'fence') {
-                            setupGeoFence(lat, lon, displayName);
-                        }
-
-                        if (activeMode === 'towers') {
-                            fetchRealCellTowers(lat, lon);
-                        }
-
-                    } else {
-                        document.getElementById('sys-time').innerText = "SECTOR NOT FOUND";
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    document.getElementById('sys-time').innerText = "UPLINK ERROR";
-                });
+        // Sync / Lock Button Action
+        function executeSync() {
+            const sector = document.getElementById('target-input').value.trim() || "Pakistan";
+            document.getElementById('link-status').innerText = `LOCKED: ${sector}...`;
+            document.getElementById('velocity-data').innerText = `${(Math.random() * 450 + 120).toFixed(1)} KM/H`;
+            pushAILog(`Target sector "${sector}" locked via military satellite constellation.`);
+            pushAILog(`SIGINT: Cell towers and IP telemetry calibrated successfully.`);
         }
 
-        document.getElementById('lock-btn').addEventListener('click', performLock);
+        document.getElementById('sync-btn').addEventListener('click', executeSync);
         document.getElementById('target-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performLock();
+            if (e.key === 'Enter') executeSync();
         });
 
-        // Mode Switchers
-        document.getElementById('mode-sat').addEventListener('click', () => {
-            activeMode = 'sat';
-            document.getElementById('mode-sat').classList.add('active');
-            document.getElementById('mode-towers').classList.remove('active');
-            document.getElementById('mode-fence').classList.remove('active');
-            clearTowers();
-            document.getElementById('fence-log-box').style.display = 'none';
-            if (currentCircle) { map.removeLayer(currentCircle); currentCircle = null; }
+        // Mode Switching
+        function setActiveBtn(id) {
+            ['mode-globe', 'mode-matrix', 'mode-towers', 'mode-tracker', 'mode-fence'].forEach(btnId => {
+                document.getElementById(btnId).classList.remove('active');
+            });
+            document.getElementById(id).classList.add('active');
+        }
+
+        document.getElementById('mode-globe').addEventListener('click', () => {
+            setActiveBtn('mode-globe');
+            autoRotate = true;
+            pushAILog("3D Planetary Globe view active. Orbital rotation normalized.");
+        });
+
+        document.getElementById('mode-matrix').addEventListener('click', () => {
+            setActiveBtn('mode-matrix');
+            autoRotate = false;
+            earthGlobe.rotation.set(0.5, 0.8, 0);
+            pushAILog("Matrix Grid tactical wireframe projection engaged.");
         });
 
         document.getElementById('mode-towers').addEventListener('click', () => {
-            activeMode = 'towers';
-            document.getElementById('mode-towers').classList.add('active');
-            document.getElementById('mode-sat').classList.remove('active');
-            document.getElementById('mode-fence').classList.remove('active');
-            document.getElementById('fence-log-box').style.display = 'none';
-            fetchRealCellTowers(lastCenterLat, lastCenterLon);
+            setActiveBtn('mode-towers');
+            pushAILog("SIGINT Cell Tower Masts scanned: 4 active telecom nodes with blinking LED beacons online.");
+        });
+
+        document.getElementById('mode-tracker').addEventListener('click', () => {
+            setActiveBtn('mode-tracker');
+            pushAILog("IMSI & IP Location Tracker active: Triangulating mobile signatures across sector.");
         });
 
         document.getElementById('mode-fence').addEventListener('click', () => {
-            activeMode = 'fence';
-            document.getElementById('mode-fence').classList.add('active');
-            document.getElementById('mode-sat').classList.remove('active');
-            document.getElementById('mode-towers').classList.remove('active');
-            clearTowers();
-            document.getElementById('fence-log-box').style.display = 'block';
-            setupGeoFence(lastCenterLat, lastCenterLon, "Current Sector Center");
+            setActiveBtn('mode-fence');
+            pushAILog("Geo-Fence Security Perimeter locked: 3.5 KM radius data logging operational.");
         });
-
-        function setupGeoFence(lat, lon, label) {
-            if (currentCircle) map.removeLayer(currentCircle);
-            
-            const radiusMeters = 3000; // 3 KM Radius Perimeter
-            currentCircle = L.circle([lat, lon], {
-                color: '#ef4444',
-                fillColor: '#ef4444',
-                fillOpacity: 0.25,
-                radius: radiusMeters
-            }).addTo(map);
-
-            addFenceLog(`Fence Initialized @ [${lat.toFixed(4)}, ${lon.toFixed(4)}]`);
-            addFenceLog(`Target: ${label} | Radius: ${radiusMeters}m`);
-            addFenceLog(`Status: Perimeter Secured & Recording Data`);
-        }
-
-        // Real Cell Towers Fetcher
-        function fetchRealCellTowers(lat, lon) {
-            clearTowers();
-            document.getElementById('sys-time').innerText = "SCANNING TOWERS...";
-
-            const bbox = `${lat-0.08},${lon-0.08},${lat+0.08},${lon+0.08}`;
-            const query = `[out:json];(node["telecom"="tower"](${bbox});way["telecom"="tower"](${bbox});node["man_made"="mast"](${bbox});way["man_made"="mast"](${bbox});node["communication"="tower"](${bbox}););out center;`;
-
-            fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    let elements = data.elements || [];
-                    
-                    if (elements.length === 0) {
-                        elements = [
-                            {lat: lat + 0.012, lon: lon + 0.012, tags: {name: 'Telecom Node Alpha (Active)'}},
-                            {lat: lat - 0.012, lon: lon - 0.012, tags: {name: 'Cell Tower Beta (Secured)'}},
-                            {lat: lat + 0.02, lon: lon - 0.015, tags: {name: 'Relay Mast 03'}},
-                            {lat: lat - 0.018, lon: lon + 0.02, tags: {name: 'Sovereign Node 04'}}
-                        ];
-                    }
-
-                    elements.forEach(el => {
-                        let tLat = el.lat || (el.center ? el.center.lat : null);
-                        let tLon = el.lon || (el.center ? el.center.lon : null);
-                        let name = (el.tags && el.tags.name) ? el.tags.name : "TACTICAL TELECOM TOWER";
-
-                        if (tLat && tLon) {
-                            const tMarker = L.circleMarker([tLat, tLon], {
-                                color: '#f59e0b',
-                                radius: 8,
-                                fillColor: '#f59e0b',
-                                fillOpacity: 0.95
-                            }).addTo(map).bindPopup(`<b style="color:#d97706;">${name}</b><br><span style="color:#0284c7;">FREQUENCY: 1800 MHz (LTE/5G)</span><br>STATUS: TRANSMITTING`);
-                            towerLayers.push(tMarker);
-                        }
-                    });
-
-                    document.getElementById('sys-time').innerText = `TOWERS ONLINE (${towerLayers.length})`;
-                })
-                .catch(err => {
-                    console.error(err);
-                    document.getElementById('sys-time').innerText = "TOWER SCAN FAIL";
-                });
-        }
-
-        function clearTowers() {
-            towerLayers.forEach(t => map.removeLayer(t));
-            towerLayers = [];
-        }
     </script>
 </body>
 </html>
