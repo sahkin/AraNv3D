@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX - 100Y Quantum Military & Spatial Intelligence System</title>
+    <title>AegisX - 100Y Quantum 3D Globe & Satellite Matrix</title>
     
-    <!-- Leaflet Map CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Three.js for True 3D Globe Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000208; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #020617; }
+        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Military Sci-Fi HUD Overlay */
+        /* Sci-Fi Military HUD Interface */
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
@@ -48,14 +48,14 @@
         }
         
         .label-glow { color: #38bdf8; font-size: 9px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.7); }
-        .val-display { color: #ffffff; font-size: 18px; font-weight: 900; font-family: monospace; margin-top: 2px; }
+        .val-display { color: #ffffff; font-size: 16px; font-weight: 900; font-family: monospace; margin-top: 2px; }
         .pulse-core { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 12px #4ade80; animation: pulse 1.5s infinite; }
         
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* Military Radar HUD Effect */
+        /* Tactical Tower & Radar HUD */
         .radar-box {
-            position: absolute; bottom: 90px; right: 15px; width: 110px; height: 110px;
+            position: absolute; bottom: 85px; right: 15px; width: 100px; height: 100px;
             background: rgba(3, 7, 18, 0.85); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 50%;
             pointer-events: none; z-index: 10; display: flex; align-items: center; justify-content: center;
             overflow: hidden; box-shadow: 0 0 25px rgba(2,132,199,0.4);
@@ -78,15 +78,13 @@
             background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
             border-color: #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.7);
         }
-
-        .leaflet-bar { border: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
+    <div id="globe-container"></div>
 
-    <!-- Military Radar Widget -->
+    <!-- Tactical Radar Widget -->
     <div class="radar-box">
         <div class="radar-sweep"></div>
         <div class="radar-center"></div>
@@ -95,14 +93,14 @@
     <div class="hud-overlay">
         <div class="top-panel">
             <div class="search-box-container">
-                <input type="text" class="search-input" id="global-search" placeholder="Enter sector, country, or coordinates...">
-                <button class="search-btn" id="exec-btn">EXECUTE</button>
+                <input type="text" class="search-input" id="global-search" placeholder="Enter country, city (e.g. Pakistan, Islamabad)...">
+                <button class="search-btn" id="exec-btn">SYNC</button>
             </div>
 
             <div class="telemetry-grid">
                 <div class="telemetry-card">
-                    <div class="label-glow"><span class="pulse-core"></span>INTELLIGENCE CORE</div>
-                    <div class="val-display" id="status-display" style="font-size: 11px; color: #38bdf8; margin-top: 4px;">SYSTEM SYNCED</div>
+                    <div class="label-glow"><span class="pulse-core"></span>TOWER & SAT LINK</div>
+                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8; margin-top: 4px;">SECURE 5G LINKED</div>
                 </div>
                 <div class="telemetry-card" style="text-align: right;">
                     <div class="label-glow">VELOCITY VECTOR</div>
@@ -112,51 +110,92 @@
         </div>
 
         <div class="control-bar">
-            <button class="quantum-btn active" id="btn-sat">SATELLITE INTEL</button>
-            <button class="quantum-btn" id="btn-matrix">CYBER MATRIX</button>
+            <button class="quantum-btn active" id="btn-globe">3D PLANETARY GLOBE</button>
+            <button class="quantum-btn" id="btn-matrix">MATRIX GRID</button>
         </div>
     </div>
 
     <script>
-        // Initialize Advanced Spatial Map Core (Centered on Pakistan by default)
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([30.3753, 69.3451], 5);
+        // Elite Three.js 3D Planetary Globe Engine
+        const container = document.getElementById('globe-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000208, 0.03);
 
-        // Cyber Matrix Theme Layer
-        const matrixTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19
-        }).addTo(map);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
 
-        // Military Grade High-Res Satellite Imagery Layer
-        const satTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19
+        // Fluid Smooth Orbit Controls (Full Zoom Out & Rotate Support)
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.8;
+        controls.zoomSpeed = 1.2;
+        controls.minDistance = 6;  // Close zoom to surface
+        controls.maxDistance = 35; // Massive zoom out to see full space & globe
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+        scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+        sunLight.position.set(25, 25, 25);
+        scene.add(sunLight);
+
+        // Earth Globe Core
+        const radius = 5;
+        const sphereGeo = new THREE.SphereGeometry(radius, 64, 64);
+        
+        // Load Realistic Satellite / Earth Texture
+        const textureLoader = new THREE.TextureLoader();
+        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        
+        let sphereMat = new THREE.MeshPhongMaterial({
+            map: earthTexture,
+            shininess: 25
         });
 
-        // Layer Switchers
-        document.getElementById('btn-matrix').addEventListener('click', () => {
-            document.getElementById('btn-matrix').classList.add('active');
-            document.getElementById('btn-sat').classList.remove('active');
-            map.removeLayer(satTiles);
-            matrixTiles.addTo(map);
+        const earthSphere = new THREE.Mesh(sphereGeo, sphereMat);
+        scene.add(earthSphere);
+
+        // Holographic Sci-Fi Atmosphere Glow
+        const glowGeo = new THREE.SphereGeometry(radius * 1.08, 32, 32);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.BackSide
         });
+        const glowSphere = new THREE.Mesh(glowGeo, glowMat);
+        scene.add(glowSphere);
 
-        document.getElementById('btn-sat').addEventListener('click', () => {
-            document.getElementById('btn-sat').classList.add('active');
-            document.getElementById('btn-matrix').classList.remove('active');
-            map.removeLayer(matrixTiles);
-            satTiles.addTo(map);
-        });
+        // Target Pin Marker
+        const pinGeo = new THREE.ConeGeometry(0.2, 0.6, 16);
+        const pinMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+        const targetMarker = new THREE.Mesh(pinGeo, pinMat);
+        targetMarker.visible = false;
+        scene.add(targetMarker);
 
-        let targetMarker = null;
+        camera.position.set(0, 5, 16);
+        controls.update();
 
-        // Global Geocoding & Military Target Locking Engine
-        function executeTacticalSearch() {
+        // Convert Latitude/Longitude to 3D Globe Vector
+        function getVector3FromLatLon(lat, lon, r) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(r * Math.sin(phi) * Math.cos(theta));
+            const z = (r * Math.sin(phi) * Math.sin(theta));
+            const y = (r * Math.cos(phi));
+            return new THREE.Vector3(x, y, z);
+        }
+
+        // Global Geocoding & Target Locking
+        function executeGlobalSearch() {
             const query = document.getElementById('global-search').value.trim();
             if (!query) return;
 
-            document.getElementById('status-display').innerText = `SCANNING: ${query.toUpperCase()}...`;
+            document.getElementById('status-display').innerText = `LOCATING SECTOR...`;
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
@@ -164,42 +203,73 @@
                     if (data && data.length > 0) {
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
-                        const name = data[0].display_name;
 
-                        document.getElementById('status-display').innerText = `TARGET LOCKED`;
+                        document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.substring(0, 22)}...`;
 
-                        // Smooth tactical zoom
-                        map.flyTo([lat, lon], 13, { duration: 2.5 });
+                        const pos = getVector3FromLatLon(lat, lon, radius);
+                        targetMarker.position.copy(pos);
+                        targetMarker.lookAt(0, 0, 0);
+                        targetMarker.visible = true;
 
-                        if (targetMarker) map.removeLayer(targetMarker);
-
-                        // Tactical Marker
-                        targetMarker = L.circleMarker([lat, lon], {
-                            radius: 12,
-                            color: '#4ade80',
-                            fillColor: '#4ade80',
-                            fillOpacity: 0.9
-                        }).addTo(map).bindPopup(`<b style="color:#000;">${name}</b>`).openPopup();
+                        // Smooth transition to target coordinate on globe
+                        controls.target.set(0, 0, 0);
+                        camera.position.set(pos.x * 2.2, pos.y * 2.2, pos.z * 2.2);
+                        controls.update();
 
                     } else {
-                        alert('Target sector not found in database.');
+                        alert('Target sector not found.');
                     }
                 })
                 .catch(err => console.error(err));
         }
 
-        document.getElementById('exec-btn').addEventListener('click', executeTacticalSearch);
+        document.getElementById('exec-btn').addEventListener('click', executeGlobalSearch);
         document.getElementById('global-search').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') executeTacticalSearch();
+            if (e.key === 'Enter') executeGlobalSearch();
         });
 
-        // Live Real-Time GPS Velocity & Telemetry Tracking
+        // Mode Switchers
+        document.getElementById('btn-globe').addEventListener('click', () => {
+            document.getElementById('btn-globe').classList.add('active');
+            document.getElementById('btn-matrix').classList.remove('active');
+            earthSphere.material.map = earthTexture;
+            earthSphere.material.wireframe = false;
+            earthSphere.material.needsUpdate = true;
+        });
+
+        document.getElementById('btn-matrix').addEventListener('click', () => {
+            document.getElementById('btn-matrix').classList.add('active');
+            document.getElementById('btn-globe').classList.remove('active');
+            earthSphere.material.map = null;
+            earthSphere.material.color.setHex(0x020617);
+            earthSphere.material.wireframe = true;
+            earthSphere.material.needsUpdate = true;
+        });
+
+        // Live GPS Telemetry
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition((pos) => {
                 const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
                 document.getElementById('velocity-val').innerText = `${speed}.0 KM/H`;
             }, (err) => {}, { enableHighAccuracy: true });
         }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            earthSphere.rotation.y += 0.0005; // Slow ambient planetary rotation
+            glowSphere.rotation.y += 0.0006;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsive Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
