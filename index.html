@@ -2,46 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AraNv3D - Interactive Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>AraNv3D - Mobile Enterprise Spatial Engine</title>
     
+    <!-- Leaflet & Three.js CDN -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #020617; font-family: system-ui, -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
-        #ar-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5; pointer-events: none; transition: opacity 0.3s; }
+        #map { 
+            width: 100vw; 
+            height: 100vh; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+            touch-action: pan-x pan-y pinch-zoom; 
+            filter: brightness(92%) contrast(108%); 
+        }
+        
+        #ar-canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            z-index: 5; 
+            pointer-events: none; 
+            transition: opacity 0.3s ease; 
+        }
 
         .hud-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10;
+            pointer-events: none; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            padding: 20px;
         }
         
         .glass-card {
-            background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 20px; padding: 20px 24px; pointer-events: auto;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); color: #f8fafc;
+            background: rgba(15, 23, 42, 0.92); 
+            backdrop-filter: blur(24px); 
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(56, 189, 248, 0.4); 
+            border-radius: 20px; 
+            padding: 18px 22px; 
+            pointer-events: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.85); 
+            color: #f8fafc;
         }
         
         .hud-header { display: flex; justify-content: space-between; align-items: center; }
-        .label-glow { color: #38bdf8; font-size: 10px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
-        .val-display { color: #ffffff; font-size: 26px; font-weight: 900; font-family: monospace; margin-top: 4px; }
+        .label-glow { color: #38bdf8; font-size: 11px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; }
+        .val-display { color: #ffffff; font-size: 24px; font-weight: 900; font-family: monospace; margin-top: 4px; }
         
-        .pulse-indicator { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 12px #22c55e; }
+        .pulse-indicator { width: 10px; height: 10px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 12px #4ade80; }
         
-        .action-bar { display: flex; gap: 12px; margin: 0 auto; width: 100%; max-width: 480px; pointer-events: auto; }
+        .action-bar { display: flex; gap: 12px; margin: 0 auto; width: 100%; max-width: 440px; pointer-events: auto; }
         .action-btn {
-            flex: 1; padding: 18px; border: none; border-radius: 16px; background: rgba(30, 41, 59, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1); color: #38bdf8; font-weight: 800; font-size: 12px;
-            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+            flex: 1; 
+            padding: 16px; 
+            border: none; 
+            border-radius: 16px; 
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            color: #38bdf8; 
+            font-weight: 800; 
+            font-size: 12px;
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
         }
         .action-btn.active {
-            background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff;
-            border-color: #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.5);
+            background: linear-gradient(135deg, #0284c7, #2563eb); 
+            color: #ffffff;
+            border-color: #38bdf8; 
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.5);
         }
     </style>
 </head>
@@ -53,8 +100,8 @@
     <div class="hud-overlay">
         <div class="glass-card hud-header">
             <div>
-                <div class="label-glow"><span class="pulse-indicator"></span>OPEN AI RADAR</div>
-                <div style="color: #94a3b8; font-size: 12px; font-weight: 600; margin-top: 4px;">SYSTEM OPERATIONAL</div>
+                <div class="label-glow"><span class="pulse-indicator"></span>AI MOBILE HUD</div>
+                <div style="color: #94a3b8; font-size: 11px; font-weight: 600; margin-top: 4px;">TOUCH & ZOOM ACTIVE</div>
             </div>
             <div style="text-align: right;">
                 <div class="label-glow">VELOCITY</div>
@@ -69,48 +116,96 @@
     </div>
 
     <script>
-        // High-Performance Zero-Token Map Engine
-        const map = L.map('map', { zoomControl: false }).setView([33.6844, 73.0479], 18);
+        // Initialize Map with Full Mobile Touch Support & Pinch Zoom Enabled
+        const map = L.map('map', {
+            zoomControl: false,
+            dragging: true,
+            touchZoom: true,
+            doubleClickZoom: true,
+            scrollWheelZoom: true,
+            boxZoom: true,
+            tap: true
+        }).setView([33.6844, 73.0479], 17);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'AraNv3D Engine'
+        // Professional CartoDB Dark Matter Tiles Layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20,
+            minZoom: 3,
+            subdomains: 'abcd',
+            attribution: '&copy; AraNv3D Global Architecture'
         }).addTo(map);
 
+        // High-Precision User Marker
         const userMarker = L.circleMarker([33.6844, 73.0479], {
             color: '#38bdf8',
             fillColor: '#0284c7',
-            fillOpacity: 0.9,
-            radius: 10
+            fillOpacity: 0.95,
+            radius: 11,
+            weight: 3
         }).addTo(map);
 
-        // Auto Geolocation Sync
+        let isInitialCentered = false;
+        let userInteracting = false;
+
+        // Detect if user touches the map so auto-centering doesn't fight manual zoom/panning
+        map.on('mousedown touchstart movestart', () => {
+            userInteracting = true;
+        });
+
+        // Advanced Autonomous Geolocation Tracking Loop with Sub-Meter Logic
         if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition((p) => {
-                const lng = p.coords.longitude;
-                const lat = p.coords.latitude;
-                const speed = p.coords.speed ? Math.round(p.coords.speed * 3.6) : 0;
+            navigator.geolocation.watchPosition((position) => {
+                const lng = position.coords.longitude;
+                const lat = position.coords.latitude;
+                const speedMs = position.coords.speed;
+                const speedKmh = speedMs ? Math.round(speedMs * 3.6) : 0;
                 
-                document.getElementById('speed-meter').innerText = `${speed} KM/H`;
-                map.setView([lat, lng], 18);
-                userMarker.setLatLng([lat, lng]);
-            }, (err) => console.log(err), { enableHighAccuracy: true });
+                document.getElementById('speed-meter').innerText = `${speedKmh} KM/H`;
+                
+                const currentLatLng = [lat, lng];
+                userMarker.setLatLng(currentLatLng);
+
+                // Center only on first load or if user is not manually navigating
+                if (!isInitialCentered) {
+                    map.setView(currentLatLng, 18);
+                    isInitialCentered = true;
+                } else if (!userInteracting) {
+                    map.panTo(currentLatLng, { animate: true });
+                }
+
+            }, (error) => {
+                console.warn("Geolocation warning: ", error.message);
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 15000
+            });
         }
 
-        // Three.js AR Engine
+        // Three.js AR Holographic Engine Initialization
         const canvas = document.getElementById('ar-canvas');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        const ringGeo = new THREE.RingGeometry(1.2, 1.5, 64);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, wireframe: true });
-        const arRing = new THREE.Mesh(ringGeo, ringMat);
+        // Create Holographic Ring
+        const ringGeometry = new THREE.RingGeometry(1.2, 1.5, 64);
+        const ringMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x38bdf8, 
+            side: THREE.DoubleSide, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.8 
+        });
+        const arRing = new THREE.Mesh(ringGeometry, ringMaterial);
         arRing.position.z = -5;
         arRing.rotation.x = Math.PI / 3;
         scene.add(arRing);
 
+        // Smooth Animation Render Loop
         function renderLoop() {
             requestAnimationFrame(renderLoop);
             arRing.rotation.z += 0.015;
@@ -118,20 +213,27 @@
         }
         renderLoop();
 
-        // Working Click Interactivity Logic
+        // Handle Screen Resizing Dynamically
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // HUD Interactive Controls Integration
         const btn3d = document.getElementById('btn-3d');
         const btnAr = document.getElementById('btn-ar');
 
         btn3d.addEventListener('click', () => {
             btn3d.classList.add('active');
             btnAr.classList.remove('active');
-            canvas.style.opacity = '0'; // Hide AR overlay for clean map view
+            canvas.style.opacity = '0';
         });
 
         btnAr.addEventListener('click', () => {
             btnAr.classList.add('active');
             btn3d.classList.remove('active');
-            canvas.style.opacity = '1'; // Show AR HUD
+            canvas.style.opacity = '1';
         });
     </script>
 </body>
