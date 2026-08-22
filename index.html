@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX - 100Y Quantum 3D Globe & Satellite Matrix</title>
+    <title>AegisX - Ultimate Military & Cellular Intelligence System</title>
     
-    <!-- Three.js for True 3D Globe Rendering -->
+    <!-- Three.js for 3D Globe & Spatial Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
@@ -13,9 +13,9 @@
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #000208; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Sci-Fi Military HUD Interface */
+        /* Military Command HUD Interface */
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
@@ -48,25 +48,25 @@
         }
         
         .label-glow { color: #38bdf8; font-size: 9px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(56,189,248,0.7); }
-        .val-display { color: #ffffff; font-size: 16px; font-weight: 900; font-family: monospace; margin-top: 2px; }
+        .val-display { color: #ffffff; font-size: 15px; font-weight: 900; font-family: monospace; margin-top: 2px; }
         .pulse-core { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 12px #4ade80; animation: pulse 1.5s infinite; }
         
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* Tactical Tower & Radar HUD */
+        /* Advanced Tactical Radar Widget */
         .radar-box {
-            position: absolute; bottom: 85px; right: 15px; width: 100px; height: 100px;
+            position: absolute; bottom: 85px; right: 15px; width: 110px; height: 110px;
             background: rgba(3, 7, 18, 0.85); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 50%;
             pointer-events: none; z-index: 10; display: flex; align-items: center; justify-content: center;
-            overflow: hidden; box-shadow: 0 0 25px rgba(2,132,199,0.4);
+            overflow: hidden; box-shadow: 0 0 30px rgba(2,132,199,0.5);
         }
         .radar-sweep {
             position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.4) 360deg);
-            animation: rotateRadar 4s linear infinite;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0) 0deg, rgba(56, 189, 248, 0.5) 360deg);
+            animation: rotateRadar 3s linear infinite;
         }
         @keyframes rotateRadar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .radar-center { width: 4px; height: 4px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 8px #4ade80; z-index: 2; }
+        .radar-center { width: 5px; height: 5px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; z-index: 2; }
 
         .control-bar { display: flex; gap: 10px; pointer-events: auto; width: 100%; max-width: 420px; margin: 0 auto; }
         .quantum-btn {
@@ -82,9 +82,9 @@
 </head>
 <body>
 
-    <div id="globe-container"></div>
+    <div id="canvas-container"></div>
 
-    <!-- Tactical Radar Widget -->
+    <!-- Military Radar Widget -->
     <div class="radar-box">
         <div class="radar-sweep"></div>
         <div class="radar-center"></div>
@@ -93,14 +93,14 @@
     <div class="hud-overlay">
         <div class="top-panel">
             <div class="search-box-container">
-                <input type="text" class="search-input" id="global-search" placeholder="Enter country, city (e.g. Pakistan, Islamabad)...">
-                <button class="search-btn" id="exec-btn">SYNC</button>
+                <input type="text" class="search-input" id="global-search" placeholder="Enter target country, city or sector...">
+                <button class="search-btn" id="exec-btn">LOCK</button>
             </div>
 
             <div class="telemetry-grid">
                 <div class="telemetry-card">
-                    <div class="label-glow"><span class="pulse-core"></span>TOWER & SAT LINK</div>
-                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8; margin-top: 4px;">SECURE 5G LINKED</div>
+                    <div class="label-glow"><span class="pulse-core"></span>TOWER & SAT MATRIX</div>
+                    <div class="val-display" id="status-display" style="font-size: 10px; color: #38bdf8;">ACTIVE 5G / SAT LINK</div>
                 </div>
                 <div class="telemetry-card" style="text-align: right;">
                     <div class="label-glow">VELOCITY VECTOR</div>
@@ -110,16 +110,16 @@
         </div>
 
         <div class="control-bar">
-            <button class="quantum-btn active" id="btn-globe">3D PLANETARY GLOBE</button>
-            <button class="quantum-btn" id="btn-matrix">MATRIX GRID</button>
+            <button class="quantum-btn active" id="btn-globe">PLANETARY GLOBE</button>
+            <button class="quantum-btn" id="btn-matrix">TACTICAL GRID</button>
         </div>
     </div>
 
     <script>
-        // Elite Three.js 3D Planetary Globe Engine
-        const container = document.getElementById('globe-container');
+        // AegisX 3D Core Engine Initialization
+        const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000208, 0.03);
+        scene.fog = new THREE.FogExp2(0x000208, 0.025);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -127,60 +127,58 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Fluid Smooth Orbit Controls (Full Zoom Out & Rotate Support)
+        // Fluid Orbit Controls with Wide Zoom Range
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.rotateSpeed = 0.8;
         controls.zoomSpeed = 1.2;
-        controls.minDistance = 6;  // Close zoom to surface
-        controls.maxDistance = 35; // Massive zoom out to see full space & globe
+        controls.minDistance = 5.5;
+        controls.maxDistance = 40;
 
-        // Lights
+        // Lighting System
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
         scene.add(ambientLight);
         const sunLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
-        sunLight.position.set(25, 25, 25);
+        sunLight.position.set(30, 30, 30);
         scene.add(sunLight);
 
-        // Earth Globe Core
+        // Earth Globe Creation
         const radius = 5;
         const sphereGeo = new THREE.SphereGeometry(radius, 64, 64);
         
-        // Load Realistic Satellite / Earth Texture
         const textureLoader = new THREE.TextureLoader();
         const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
         
-        let sphereMat = new THREE.MeshPhongMaterial({
+        const sphereMat = new THREE.MeshPhongMaterial({
             map: earthTexture,
-            shininess: 25
+            shininess: 30
         });
-
         const earthSphere = new THREE.Mesh(sphereGeo, sphereMat);
         scene.add(earthSphere);
 
-        // Holographic Sci-Fi Atmosphere Glow
-        const glowGeo = new THREE.SphereGeometry(radius * 1.08, 32, 32);
+        // Atmosphere Glow Overlay
+        const glowGeo = new THREE.SphereGeometry(radius * 1.07, 32, 32);
         const glowMat = new THREE.MeshBasicMaterial({
             color: 0x38bdf8,
             transparent: true,
-            opacity: 0.2,
+            opacity: 0.18,
             side: THREE.BackSide
         });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
-        // Target Pin Marker
-        const pinGeo = new THREE.ConeGeometry(0.2, 0.6, 16);
+        // Target Lock Indicator Pin
+        const pinGeo = new THREE.ConeGeometry(0.18, 0.5, 16);
         const pinMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
         const targetMarker = new THREE.Mesh(pinGeo, pinMat);
         targetMarker.visible = false;
         scene.add(targetMarker);
 
-        camera.position.set(0, 5, 16);
+        camera.position.set(0, 4, 15);
         controls.update();
 
-        // Convert Latitude/Longitude to 3D Globe Vector
+        // Coordinate Transformation
         function getVector3FromLatLon(lat, lon, r) {
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
@@ -190,12 +188,12 @@
             return new THREE.Vector3(x, y, z);
         }
 
-        // Global Geocoding & Target Locking
-        function executeGlobalSearch() {
+        // Global Target Geocoding & Tower Triangulation Simulation
+        function executeTargetLock() {
             const query = document.getElementById('global-search').value.trim();
             if (!query) return;
 
-            document.getElementById('status-display').innerText = `LOCATING SECTOR...`;
+            document.getElementById('status-display').innerText = `TRIANGULATING TOWER NODES...`;
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
@@ -204,31 +202,31 @@
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
 
-                        document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.substring(0, 22)}...`;
+                        document.getElementById('status-display').innerText = `LOCKED: ${data[0].display_name.substring(0, 20)}...`;
 
                         const pos = getVector3FromLatLon(lat, lon, radius);
                         targetMarker.position.copy(pos);
                         targetMarker.lookAt(0, 0, 0);
                         targetMarker.visible = true;
 
-                        // Smooth transition to target coordinate on globe
+                        // Smooth transition vector to target
                         controls.target.set(0, 0, 0);
-                        camera.position.set(pos.x * 2.2, pos.y * 2.2, pos.z * 2.2);
+                        camera.position.set(pos.x * 2.1, pos.y * 2.1, pos.z * 2.1);
                         controls.update();
 
                     } else {
-                        alert('Target sector not found.');
+                        alert('Target sector unreachable.');
                     }
                 })
                 .catch(err => console.error(err));
         }
 
-        document.getElementById('exec-btn').addEventListener('click', executeGlobalSearch);
+        document.getElementById('exec-btn').addEventListener('click', executeTargetLock);
         document.getElementById('global-search').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') executeGlobalSearch();
+            if (e.key === 'Enter') executeTargetLock();
         });
 
-        // Mode Switchers
+        // UI Layer Switchers
         document.getElementById('btn-globe').addEventListener('click', () => {
             document.getElementById('btn-globe').classList.add('active');
             document.getElementById('btn-matrix').classList.remove('active');
@@ -246,7 +244,7 @@
             earthSphere.material.needsUpdate = true;
         });
 
-        // Live GPS Telemetry
+        // Real GPS Telemetry Feed
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition((pos) => {
                 const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
@@ -254,17 +252,17 @@
             }, (err) => {}, { enableHighAccuracy: true });
         }
 
-        // Animation Loop
+        // Render Loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            earthSphere.rotation.y += 0.0005; // Slow ambient planetary rotation
-            glowSphere.rotation.y += 0.0006;
+            earthSphere.rotation.y += 0.0004;
+            glowSphere.rotation.y += 0.0005;
             renderer.render(scene, camera);
         }
         animate();
 
-        // Responsive Resize
+        // Window Resize Listener
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
