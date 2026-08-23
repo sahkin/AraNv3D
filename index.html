@@ -3,51 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VisionX // Autonomous Tactical Intelligence</title>
+    <title>VisionX // Sovereign Intelligence Grid</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; color: #38bdf8; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; color: #38bdf8; }
         
         #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Autonomous HUD Center */
-        .autonomous-hud {
+        /* Supreme Command HUD */
+        .command-hud {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; width: 92%; max-width: 450px;
-            background: rgba(2, 6, 23, 0.92); backdrop-filter: blur(15px);
-            border: 1px solid #38bdf8; border-radius: 10px; padding: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
-            display: flex; flex-direction: column; gap: 8px;
+            z-index: 1000; width: 94%; max-width: 480px;
+            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px);
+            border: 1px solid #38bdf8; border-radius: 8px; padding: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.95);
+            display: flex; flex-direction: column; gap: 10px;
         }
 
-        .hud-header {
+        .hud-top {
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 6px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 8px;
         }
-        .brand { font-size: 12px; font-weight: bold; letter-spacing: 2px; color: #38bdf8; }
-        .auto-status { font-size: 9px; color: #22c55e; font-weight: bold; display: flex; align-items: center; gap: 4px; }
-        .pulse-dot { width: 5px; height: 5px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 6px #22c55e; animation: blink 1.5s infinite; }
-        @keyframes blink { 50% { opacity: 0.3; } }
+        .brand-title { font-size: 13px; font-weight: bold; letter-spacing: 2px; color: #38bdf8; }
+        .sys-mode { font-size: 9px; color: #ef4444; font-weight: bold; letter-spacing: 1px; }
 
-        /* Automated Telemetry Grid */
-        .tele-grid {
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 4px;
+        /* Live Neural/Tactical Telemetry */
+        .tele-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .tele-card {
+            background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px; padding: 8px;
         }
-        .tele-box {
-            background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2);
-            border-radius: 6px; padding: 6px; text-align: center;
-        }
-        .tele-title { font-size: 8px; color: #64748b; letter-spacing: 1px; }
-        .tele-val { font-size: 11px; font-weight: bold; color: #f8fafc; margin-top: 2px; }
+        .tele-label { font-size: 8px; color: #64748b; letter-spacing: 1px; }
+        .tele-value { font-size: 12px; font-weight: bold; color: #22c55e; margin-top: 3px; }
 
-        /* Autonomous Live Log Stream */
-        .auto-log {
-            background: #000; border: 1px solid #1e293b; border-radius: 4px;
-            padding: 6px; font-size: 9px; color: #22c55e; height: 35px; overflow: hidden;
-            display: flex; align-items: center;
+        /* Autonomous Command Stream */
+        .command-stream {
+            background: #020617; border: 1px solid #1e293b; border-radius: 4px;
+            padding: 8px; font-size: 10px; color: #38bdf8; height: 45px;
+            overflow: hidden; display: flex; align-items: center;
         }
     </style>
 </head>
@@ -55,82 +51,63 @@
 
     <div id="map"></div>
 
-    <div class="autonomous-hud">
-        <div class="hud-header">
-            <span class="brand">VISIONX // AUTO_INTELLIGENCE</span>
-            <div class="auto-status"><div class="pulse-dot"></div> RADAR ACTIVE</div>
+    <div class="command-hud">
+        <div class="hud-top">
+            <span class="brand-title">VISIONX // SOVEREIGN_GRID</span>
+            <span class="sys-mode">STATUS: UNRESTRICTED</span>
         </div>
 
-        <div class="tele-grid">
-            <div class="tele-box">
-                <div class="tele-title">WEATHER</div>
-                <div class="tele-val" id="weather-val">SYNCING...</div>
+        <div class="tele-row">
+            <div class="tele-card">
+                <div class="tele-label">ACTIVE SATELLITE LINK</div>
+                <div class="tele-value" id="sat-status">SECURED // 100%</div>
             </div>
-            <div class="tele-box">
-                <div class="tele-title">TRAFFIC FLOW</div>
-                <div class="tele-val" id="traffic-val">OPTIMAL</div>
-            </div>
-            <div class="tele-box">
-                <div class="tele-title">RADAR SCAN</div>
-                <div class="tele-val" id="radar-val">SECURE</div>
+            <div class="tele-card">
+                <div class="tele-label">NEURAL PREDICTION</div>
+                <div class="tele-value" id="pred-status">OPTIMIZED</div>
             </div>
         </div>
 
-        <div class="auto-log" id="log-stream">
-            [SYS_INIT] Autonomous environment mapping initialized successfully...
+        <div class="command-stream" id="stream-box">
+            [CORE_INIT] Loading independent sovereign intelligence parameters...
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. Initialize Autonomous Map
+        // 1. Initialize Sovereign Core Map
         const map = L.map('map', {
             zoomControl: false,
-            minZoom: 3,
-            maxZoom: 21
-        }).setView([33.6844, 73.0479], 15);
+            minZoom: 2,
+            maxZoom: 22
+        }).setView([33.6844, 73.0479], 16);
 
-        // 2. High-Resolution Hybrid Tile Layer
+        // 2. Ultra High-Density Base Layer
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 21,
-            attribution: 'VisionX Autonomous Core'
+            maxZoom: 22,
+            attribution: 'VisionX Sovereign Defense Core'
         }).addTo(map);
 
-        // 3. Autonomous Background Intelligence Simulation (No buttons needed)
-        const logs = [
-            "Scanning sector telemetry vectors...",
-            "Weather satellite link stable. Atmospheric pressure normal.",
-            "Traffic density analyzer active: No gridlocks detected.",
-            "Autonomous route optimization running in background...",
-            "GIS satellite grid locked on target coordinates."
+        // 3. Autonomous Tactical Log Automation
+        const operationalLogs = [
+            "Bypassing conventional public throttles...",
+            "Encrypting localized tactical coordinates...",
+            "AI predictive routing engine synchronized...",
+            "High-density sector vector analysis active...",
+            "Sovereign telemetry stream operating at peak capacity."
         ];
 
-        let logIndex = 0;
-        function runAutonomousEngine() {
-            // Automatically update background telemetry logs
-            setInterval(() => {
-                document.getElementById('log-stream').innerText = `[AUTO_RADAR] ${logs[logIndex]}`;
-                logIndex = (logIndex + 1) % logs.length;
-            }, 4000);
+        let index = 0;
+        setInterval(() => {
+            document.getElementById('stream-box').innerText = `[AI_KERNEL] ${operationalLogs[index]}`;
+            index = (index + 1) % operationalLogs.length;
+        }, 3500);
 
-            // Simulating automated weather and traffic sensors based on coordinates
-            setTimeout(() => {
-                document.getElementById('weather-val').innerText = "24°C // CLEAR";
-                document.getElementById('traffic-val').innerText = "98% FLOW";
-                document.getElementById('radar-val').innerText = "ACTIVE";
-            }, 1500);
-        }
-
-        // Auto-execute on startup
-        window.addEventListener('load', () => {
-            runAutonomousEngine();
-        });
-
-        // Real-time map move listener updating background data dynamically
-        map.on('moveend', () => {
+        // Real-time grid position logger
+        map.on('move', () => {
             const center = map.getCenter();
-            document.getElementById('log-stream').innerText = `[RADAR] Sector updated at Lat: ${center.lat.toFixed(2)}, Lng: ${center.lng.toFixed(2)}`;
+            document.getElementById('sat-status').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
         });
     </script>
 </body>
