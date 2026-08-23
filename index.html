@@ -102,7 +102,7 @@
         <div class="hud-top">
             <div class="search-box">
                 <button id="gps-btn">AUTO GPS</button>
-                <input type="text" id="target-input" placeholder="SECTOR OR CITY...">
+                <input type="text" id="target-input" placeholder="ENTER SECTOR / CITY / LAT, LON...">
                 <button id="lock-btn">LOCK</button>
             </div>
             <div class="telemetry-grid">
@@ -133,16 +133,16 @@
             </div>
 
             <div class="packet-panel">
-                <span class="label" style="color: #38bdf8; margin-bottom: 2px;">WIRESHARK PROTOCOL ANALYZER</span>
+                <span class="label" style="color: #38bdf8; margin-bottom: 2px;">WIRESHARK PROTOCOL & CAR TRACKER ANALYZER</span>
                 <div class="packet-terminal" id="packet-log">
-                    <div>[0.001] SYSTEM_BOOT_SEQUENCE_OK -> MESH_LINKED</div>
+                    <div>[0.001] SYSTEM_BOOT_SEQUENCE_OK -> GEOFENCE MESH ACTIVE</div>
                 </div>
             </div>
 
             <div class="panel">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="label">GEOFENCE & PROXIMITY TOWER SCANNER</span>
-                    <span id="tower-status" style="font-size: 8px; color: #38bdf8; font-weight: bold;">WAITING GPS FIX...</span>
+                    <span class="label">LOCAL BTS PROXIMITY MESH (3+ TOWERS LOCKED)</span>
+                    <span id="tower-status" style="font-size: 8px; color: #38bdf8; font-weight: bold;">SCANNING PERIMETER...</span>
                 </div>
             </div>
         </div>
@@ -151,7 +151,7 @@
         <div class="hud-bottom">
             <div class="status-panel">
                 <span class="label">STATUS FEED:</span>
-                <span class="value" id="osint-status">INITIALIZING AUTOMATIC GEO-LOCK...</span>
+                <span class="value" id="osint-status">AUTO-GEO & TOWER LOCK INITIALIZED...</span>
             </div>
             <div class="control-buttons">
                 <button class="nav-btn active" id="btn-sat">HD SATELLITE</button>
@@ -164,7 +164,7 @@
     <!-- Leaflet GIS Engine Script -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([33.6844, 73.0479], 15);
+        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([33.6844, 73.0479], 16);
         
         const satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 21 });
         const weatherLayer = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=demo', { maxZoom: 21, opacity: 0.6 });
@@ -175,92 +175,108 @@
         let geoFenceCircle = null;
         let realTowerMarkers = [];
         let towerMeshLines = [];
+        let carMarker = null;
 
-        // --- DYNAMIC PROXIMITY TOWERS GENERATOR (Guaranteed 5-6 Masts around any GPS coordinate) ---
-        function renderProximityTowers(lat, lon) {
+        // --- PRECISE SURROUNDING TOWERS & CAR TRACKER GENERATOR ---
+        function renderProximityTowersAndCar(lat, lon) {
             if (geoFenceCircle) map.removeLayer(geoFenceCircle);
             realTowerMarkers.forEach(m => map.removeLayer(m));
             towerMeshLines.forEach(l => map.removeLayer(l));
+            if (carMarker) map.removeLayer(carMarker);
             realTowerMarkers = [];
             towerMeshLines = [];
 
+            // Geofence perimeter
             geoFenceCircle = L.circle([lat, lon], {
-                color: '#ef4444',
-                fillColor: '#ef4444',
-                fillOpacity: 0.1,
-                radius: 3000
+                color: '#38bdf8',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.08,
+                radius: 1200
             }).addTo(map);
 
-            // Precise surrounding offsets to ensure towers are always visible right near your house/location
-            const preciseOffsets = [
-                [0.006, 0.008], [-0.007, 0.006], [0.012, -0.005], 
-                [-0.01, -0.009], [0.003, 0.015], [-0.004, -0.014], [0.015, 0.003]
+            // Exact 3 local towers right around user's immediate perimeter as requested
+            const localTowers = [
+                { name: "BTS MAST NODE #01 (TELCO-LTE)", offsetLat: 0.0022, offsetLon: 0.0025, signal: "-51 dBm (Encrypted)" },
+                { name: "BTS MAST NODE #02 (CELL-GSM)", offsetLat: -0.0028, offsetLon: 0.0018, signal: "-56 dBm (Active Relay)" },
+                { name: "BTS MAST NODE #03 (HYBRID-5G)", offsetLat: 0.0005, offsetLon: -0.0032, signal: "-48 dBm (High Throughput)" }
             ];
 
-            preciseOffsets.forEach((off, idx) => {
-                const tLat = lat + off[0];
-                const tLon = lon + off[1];
+            localTowers.forEach((tower, idx) => {
+                const tLat = lat + tower.offsetLat;
+                const tLon = lon + tower.offsetLon;
 
+                // Mesh triangulation lines connecting target to towers
                 const meshLine = L.polyline([[lat, lon], [tLat, tLon]], {
-                    color: '#38bdf8', weight: 1, opacity: 0.6, dashArray: '3, 3'
+                    color: '#22c55e', weight: 1.5, opacity: 0.7, dashArray: '4, 4'
                 }).addTo(map);
                 towerMeshLines.push(meshLine);
 
-                const towerHtml = `<div style="width:12px; height:12px; background:#22c55e; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 12px #22c55e;"></div>`;
-                const tIcon = L.divIcon({ className: '', html: towerHtml, iconSize: [12, 12] });
+                // Tower Icon HTML
+                const towerHtml = `<div style="width:14px; height:14px; background:#22c55e; border:2px solid #ffffff; border-radius:3px; box-shadow:0 0 14px #22c55e; display:flex; align-items:center; justify-content:center; font-size:7px; color:#000; font-weight:bold;">T${idx+1}</div>`;
+                const tIcon = L.divIcon({ className: '', html: towerHtml, iconSize: [14, 14], iconAnchor: [7, 7] });
                 const marker = L.marker([tLat, tLon], { icon: tIcon }).addTo(map);
-                marker.bindPopup(`<b style="font-family:monospace; font-size:10px;">BTS MAST NODE #${idx+1}</b><br>Lat/Lon: ${tLat.toFixed(4)}, ${tLon.toFixed(4)}<br>Signal: -58 dBm (Secure Link)`);
+                marker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#16a34a;">${tower.name}</b><br>Coords: ${tLat.toFixed(5)}, ${tLon.toFixed(5)}<br>Signal Strength: ${tower.signal}`);
                 realTowerMarkers.push(marker);
             });
 
-            document.getElementById('tower-status').innerText = `ACTIVE: ${preciseOffsets.length} BTS MASTS MAPPED`;
+            // Simulated Target / Car Tracker Marker moving slightly or locked near user
+            const carLat = lat + 0.0012;
+            const carLon = lon - 0.0015;
+            const carHtml = `<div style="width:16px; height:16px; background:#ef4444; border:2px solid #fff; border-radius:50%; box-shadow:0 0 15px #ef4444; animation: tactical-pulse 1s infinite;"></div>`;
+            const carIcon = L.divIcon({ className: '', html: carHtml, iconSize: [16, 16], iconAnchor: [8, 8] });
+            carMarker = L.marker([carLat, carLon], { icon: carIcon }).addTo(map);
+            carMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#ef4444;">ACTIVE TARGET / CAR TRACKER</b><br>Speed: 42 km/h | Heading: 142° SE`);
+
+            document.getElementById('tower-status').innerText = `LOCKED: 3 LOCAL BTS TOWERS + 1 CAR TRACKER`;
         }
 
-        // --- AUTOMATIC LIVE GPS LOCATION ACQUISITION ---
+        // --- AUTOMATIC LIVE GPS ACQUISITION ---
         function triggerAutoGPS() {
-            document.getElementById('osint-status').innerText = `ACQUIRING HARDWARE GPS FIX...`;
+            document.getElementById('osint-status').innerText = `ACQUIRING HARDWARE GPS FIX & CELL LOCK...`;
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
                         
-                        map.flyTo([lat, lon], 16, { duration: 2.0 });
+                        map.flyTo([lat, lon], 17, { duration: 2.0 });
 
                         if (currentMarker) map.removeLayer(currentMarker);
-                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [24, 24], iconAnchor: [12, 12] });
+                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
                         currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
+                        currentMarker.bindPopup(`<b style="font-family:monospace; font-size:10px;">COMMAND POSITION (YOU)</b>`);
 
-                        renderProximityTowers(lat, lon);
-                        document.getElementById('osint-status').innerText = `GPS LOCKED: [${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
+                        renderProximityTowersAndCar(lat, lon);
+                        document.getElementById('osint-status').innerText = `GPS & CELL TOWERS LOCKED: [${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
                     },
                     (error) => {
-                        // Fallback to default operational center if GPS blocked
+                        // Fallback default center if permission blocked
                         const defLat = 34.1349, defLon = 73.2199;
-                        map.flyTo([defLat, defLon], 15);
-                        renderProximityTowers(defLat, defLon);
-                        document.getElementById('osint-status').innerText = `GPS PERMISSION DENIED - DEFAULT GRID ACTIVE`;
+                        map.flyTo([defLat, defLon], 16);
+                        currentMarker = L.marker([defLat, defLon], { icon: L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(map);
+                        renderProximityTowersAndCar(defLat, defLon);
+                        document.getElementById('osint-status').innerText = `GPS ACCESSED - DEFAULT TACTICAL GRID ACTIVE`;
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             }
         }
 
-        // Auto trigger GPS on startup
+        // Auto trigger on page load
         window.addEventListener('load', () => {
             setTimeout(triggerAutoGPS, 800);
         });
 
         document.getElementById('gps-btn').addEventListener('click', triggerAutoGPS);
 
-        // --- WIRESHARK PACKET SNIFFER STREAM ---
+        // --- WIRESHARK & CAR TELEMETRY PACKET STREAM ---
         const packetLogs = [
-            "LTE_RRC_CONNECTION_RECONFIGURATION [Radio Bearer ID: 5, RLC: AM]",
-            "GSM_RR_MEASUREMENT_REPORT [Cell ID: 4802, RxLev: -52dBm, TA: 1]",
-            "SIP/SDP 200 OK - Encrypted Voice Stream Active [Codec: G.711]",
-            "TCP_ACK [Window: 65535, Seq: 1042, Ack: 89, Bytes: 1460]",
-            "NAS_EMM_TRACKING_AREA_UPDATE_ACCEPT [TAI: 410-01-5042]",
-            "RF_BURST_FRAME [Freq: 142.85 MHz, SNR: 35.1 dB, Mode: Intercept]"
+            "LTE_RRC_CONNECTION_RECONFIGURATION [BTS Node #01, RLC: AM, SNR: 38dB]",
+            "GSM_RR_MEASUREMENT_REPORT [Cell ID: 4802, RxLev: -51dBm, TA: 0]",
+            "VEHICLE_TRACKER_GPS_TELEMETRY [Speed: 42.5 km/h, Satellites: 11]",
+            "SIP/SDP 200 OK - Encrypted Voice Stream Active [Codec: G.711u]",
+            "NAS_EMM_TRACKING_AREA_UPDATE_ACCEPT [TAI: 410-01-5042, Cipher: EEA2]",
+            "RF_BURST_FRAME [Freq: 142.85 MHz, Signal Intercepted: Clear]"
         ];
 
         setInterval(() => {
@@ -276,7 +292,7 @@
             terminal.scrollTop = terminal.scrollHeight;
         }, 1000);
 
-        // --- AUTHENTIC TACTICAL RADIO AUDIO ENGINE ---
+        // --- TACTICAL RADIO AUDIO ENGINE ---
         let audioCtx = null;
         let noiseNode = null;
         let gainNode = null;
@@ -300,11 +316,11 @@
 
                     const filter = audioCtx.createBiquadFilter();
                     filter.type = 'bandpass';
-                    filter.frequency.value = 1800;
-                    filter.Q.value = 4.0;
+                    filter.frequency.value = 1600;
+                    filter.Q.value = 5.0;
 
                     gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
 
                     noiseNode.connect(filter);
                     filter.connect(gainNode);
@@ -318,7 +334,7 @@
                     document.getElementById('toggle-radio').style.background = "#ef4444";
                     document.getElementById('toggle-radio').style.color = "#fff";
                 } catch(e) {
-                    alert("Tap 'LISTEN COMMS' again to authorize audio.");
+                    alert("Tap 'LISTEN COMMS' again to authorize audio stream.");
                 }
             } else {
                 if (noiseNode) { noiseNode.stop(); noiseNode.disconnect(); }
@@ -344,7 +360,7 @@
             document.getElementById('coord-display').innerText = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
         });
 
-        // --- TARGET SEARCH & LOCK ---
+        // --- TARGET & LOCATION SEARCH ---
         function lockTarget() {
             const query = document.getElementById('target-input').value.trim();
             if (!query) return;
@@ -358,14 +374,14 @@
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
 
-                        map.flyTo([lat, lon], 15, { duration: 2.0 });
+                        map.flyTo([lat, lon], 17, { duration: 2.0 });
 
                         if (currentMarker) map.removeLayer(currentMarker);
-                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [24, 24], iconAnchor: [12, 12] });
+                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
                         currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
 
-                        renderProximityTowers(lat, lon);
-                        document.getElementById('osint-status').innerText = `LOCKED: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`;
+                        renderProximityTowersAndCar(lat, lon);
+                        document.getElementById('osint-status').innerText = `LOCKED: [${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
                     } else {
                         document.getElementById('osint-status').innerText = `SECTOR NOT FOUND`;
                     }
@@ -378,7 +394,7 @@
         document.getElementById('lock-btn').addEventListener('click', lockTarget);
         document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') lockTarget(); });
 
-        // --- LAYERS ---
+        // --- MAP LAYERS SWITCHER ---
         document.getElementById('btn-sat').addEventListener('click', () => {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-sat').classList.add('active');
