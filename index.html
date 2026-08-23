@@ -2,352 +2,90 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX Sovereign Intelligence - 3D Planetary Command Deck</title>
-    
-    <!-- Three.js for 3D Planetary Globe -->
+    <title>AegisX Command Deck - Satellites & Cams</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: 'Courier New', Courier, monospace; }
-        
-        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
-
-        /* Tactical HUD Layer */
-        .hud-wrapper {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
-        }
-        
-        .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
-
-        .search-box {
-            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.8); border-radius: 10px; padding: 8px 12px;
-            display: flex; gap: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.9);
-        }
-        .search-field {
-            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 12px; font-weight: bold; font-family: monospace;
-        }
-        .search-field::placeholder { color: #475569; }
-        
-        .sync-btn {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 6px;
-            padding: 0 16px; color: white; font-weight: bold; font-size: 10px; letter-spacing: 1px; cursor: pointer;
-            box-shadow: 0 0 15px rgba(2, 132, 199, 0.6);
-        }
-
-        .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-        .tele-panel {
-            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 8px 12px;
-            color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
-        }
-        
-        .tele-title { color: #38bdf8; font-size: 7px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-        .tele-data { color: #ffffff; font-size: 11px; font-weight: bold; font-family: monospace; margin-top: 2px; }
-        .active-dot { width: 5px; height: 5px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 4px; box-shadow: 0 0 8px #22c55e; }
-
-        /* AI & Intelligence Live Stream Log Box */
-        .intelligence-panel {
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(34, 197, 94, 0.7); border-radius: 8px; padding: 8px 10px;
-            color: #f8fafc; max-height: 110px; overflow-y: auto; pointer-events: auto;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
-        }
-        .ai-title { color: #22c55e; font-size: 8px; font-weight: bold; letter-spacing: 1px; display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .ai-logs { font-size: 9px; color: #cbd5e1; font-family: monospace; line-height: 1.3; }
-
-        /* Bottom Controls & Radar Widget Area */
-        .hud-bottom-area { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; margin: 0 auto; pointer-events: auto; }
-        
-        .hud-bottom { display: flex; gap: 6px; }
-        .nav-btn {
-            flex: 1; padding: 10px 4px; border-radius: 8px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; font-size: 8px;
-            letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center;
-        }
-        .nav-btn.active {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff; border-color: #38bdf8;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
-        }
-
-        /* Radar Widget Container (Like Screenshot Bottom Right) */
-        .radar-widget-box {
-            position: absolute; bottom: 85px; right: 15px; width: 120px; height: 120px;
-            background: rgba(2, 6, 23, 0.85); border: 1px solid rgba(56, 189, 248, 0.5);
-            border-radius: 50%; pointer-events: auto; box-shadow: 0 0 25px rgba(2, 132, 199, 0.4);
-            overflow: hidden; z-index: 1100; display: flex; align-items: center; justify-content: center;
-        }
-        #radar-canvas { width: 100%; height: 100%; display: block; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #010409; font-family: monospace; color: #38bdf8; }
+        #globe-container { width: 100vw; height: 100vh; position: absolute; z-index: 1; }
+        .hud { position: absolute; z-index: 10; padding: 15px; pointer-events: none; width: 100%; box-sizing: border-box; }
+        .panel { background: rgba(2,6,23,0.85); border: 1px solid #38bdf8; padding: 10px; border-radius: 8px; margin-bottom: 10px; pointer-events: auto; }
+        button { background: #0284c7; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        #camera-feed { display: none; width: 250px; height: 150px; background: #000; border: 2px solid #ef4444; margin-top: 10px; position: relative; }
+        .cam-text { position: absolute; top: 5px; left: 5px; color: #ef4444; font-size: 10px; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-
     <div id="globe-container"></div>
-
-    <!-- Live Radar Widget (Bottom Right) -->
-    <div class="radar-widget-box" id="radar-box" title="Tactical Airborne & Jet Radar">
-        <canvas id="radar-canvas" width="120" height="120"></canvas>
-    </div>
-
-    <div class="hud-wrapper">
-        <div class="hud-top">
-            <div class="search-box">
-                <input type="text" class="search-field" id="target-input" placeholder="PAKISTAN // SECTOR LOCK...">
-                <button class="sync-btn" id="sync-btn">SYNC</button>
+    
+    <div class="hud">
+        <div class="panel" style="max-width: 300px;">
+            <h3>AEGIS-X SATELLITE & CAMERA UPLINK</h3>
+            <button id="sat-btn">TRACK SATELLITES</button>
+            <button id="cam-btn">LIVE CAMERA FEED</button>
+            
+            <div id="camera-feed">
+                <div class="cam-text">🔴 REC - SECTOR 7 LINK</div>
+                <!-- You can put a real live YouTube or IP cam iframe here later -->
+                <div style="color: #475569; text-align: center; margin-top: 50px; font-size: 12px;">WAITING FOR API FEED...</div>
             </div>
-
-            <div class="telemetry-bar">
-                <div class="tele-panel">
-                    <div class="tele-title"><span class="active-dot"></span>TOWER & SAT LINK</div>
-                    <div class="tele-data" id="link-status">LOCKED: Pakistan...</div>
-                </div>
-                <div class="tele-panel" style="text-align: right;">
-                    <div class="tele-title">VELOCITY VECTOR</div>
-                    <div class="tele-data" id="velocity-data">0.0 KM/H</div>
-                </div>
-            </div>
-
-            <!-- AI Autonomous Intelligence & Geo-Fence / IMSI Tracker Feed -->
-            <div class="intelligence-panel">
-                <div class="ai-title">
-                    <span>AEGIS-X AI & AGENCY TELEMETRY STREAM</span>
-                    <span id="ai-count" style="color: #38bdf8;">ACTIVE</span>
-                </div>
-                <div class="ai-logs" id="ai-log-content">
-                    [SYSTEM] 3D Planetary Globe initialized. Encrypted satellite constellations active.
-                </div>
-            </div>
-        </div>
-
-        <div class="hud-bottom-area">
-            <div class="hud-bottom">
-                <button class="nav-btn active" id="mode-globe">3D PLANETARY GLOBE</button>
-                <button class="nav-btn" id="mode-matrix">MATRIX GRID</button>
-                <button class="nav-btn" id="mode-towers">SIGINT TOWERS</button>
-                <button class="nav-btn" id="mode-tracker">IMSI / IP TRACKER</button>
-                <button class="nav-btn" id="mode-fence">GEO-FENCE</button>
-            </div>
+            
+            <div id="log" style="margin-top:10px; font-size: 10px; color: #22c55e;">[SYSTEM] Ready...</div>
         </div>
     </div>
 
     <script>
-        // --- THREE.JS 3D PLANETARY GLOBE SETUP ---
-        const container = document.getElementById('globe-container');
+        // Basic 3D Globe Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        container.appendChild(renderer.domElement);
+        document.getElementById('globe-container').appendChild(renderer.domElement);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-        scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0x38bdf8, 2, 50);
-        pointLight.position.set(10, 10, 10);
-        scene.add(pointLight);
+        const light = new THREE.PointLight(0x38bdf8, 2, 50);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-        // Earth Globe Sphere with Wireframe & Matrix Glow
-        const globeRadius = 3.5;
-        const geometry = new THREE.SphereGeometry(globeRadius, 64, 64);
-        
-        // Custom Shader Material for High-Tech Agency Globe
-        const globeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x0a192f,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.65
-        });
-        const earthGlobe = new THREE.Mesh(geometry, globeMaterial);
-        scene.add(earthGlobe);
+        const earth = new THREE.Mesh(
+            new THREE.SphereGeometry(3, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0x0a192f, wireframe: true })
+        );
+        scene.add(earth);
 
-        // Solid inner core for depth
-        const coreMaterial = new THREE.MeshBasicMaterial({ color: 0x020617 });
-        const earthCore = new THREE.Mesh(new THREE.SphereGeometry(globeRadius - 0.02, 32, 32), coreMaterial);
-        scene.add(earthCore);
+        // Add 3 Satellites orbiting
+        const satGroup = new THREE.Group();
+        const satColors = [0xef4444, 0x22c55e, 0xf59e0b];
+        for(let i=0; i<3; i++) {
+            const sat = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 0.2, 0.2),
+                new THREE.MeshBasicMaterial({ color: satColors[i] })
+            );
+            // Position them at different distances
+            sat.position.set(Math.cos(i*2) * 4, Math.sin(i*2) * 3, Math.sin(i*3) * 4);
+            satGroup.add(sat);
+        }
+        scene.add(satGroup);
+        camera.position.z = 10;
 
-        camera.position.z = 11;
-
-        // Target Marker on Globe (e.g. Pakistan / Islamabad)
-        const markerGeometry = new THREE.SphereGeometry(0.12, 16, 16);
-        const markerMaterial = new THREE.MeshBasicMaterial({ color: 0x22c55e });
-        const targetMarker = new THREE.Mesh(markerGeometry, markerMaterial);
-        // Position roughly around Pakistan coordinates on the sphere
-        targetMarker.position.set(1.8, 1.5, 2.4);
-        scene.add(targetMarker);
-
-        // Orbit / Rotation control variables
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let autoRotate = true;
-
-        window.addEventListener('mousedown', (e) => { isDragging = true; autoRotate = false; });
-        window.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const deltaX = e.clientX - previousMousePosition.x;
-                const deltaY = e.clientY - previousMousePosition.y;
-                earthGlobe.rotation.y += deltaX * 0.005;
-                earthCore.rotation.y += deltaX * 0.005;
-                earthGlobe.rotation.x += deltaY * 0.005;
-                earthCore.rotation.x += deltaY * 0.005;
-            }
-            previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
-        window.addEventListener('mouseup', () => { isDragging = false; });
-
-        // Touch support for mobile
-        window.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                autoRotate = false;
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        window.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
-                const deltaX = e.touches[0].clientX - previousMousePosition.x;
-                const deltaY = e.touches[0].clientY - previousMousePosition.y;
-                earthGlobe.rotation.y += deltaX * 0.005;
-                earthCore.rotation.y += deltaX * 0.005;
-                earthGlobe.rotation.x += deltaY * 0.005;
-                earthCore.rotation.x += deltaY * 0.005;
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        window.addEventListener('touchend', () => { isDragging = false; });
-
-        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            if (autoRotate) {
-                earthGlobe.rotation.y += 0.002;
-                earthCore.rotation.y += 0.002;
-            }
+            earth.rotation.y += 0.002;
+            satGroup.rotation.y += 0.01; // Satellites orbit faster
+            satGroup.rotation.x += 0.005;
             renderer.render(scene, camera);
         }
         animate();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // UI Controls
+        document.getElementById('sat-btn').addEventListener('click', () => {
+            document.getElementById('log').innerHTML = "TRACKING: GPS-IIR, GLONASS, STARLINK-9X...<br>Status: IN ORBIT";
         });
 
-        // --- RADAR CANVAS SWEEP (Fighter Jets & Air Traffic Tracker) ---
-        const radarCanvas = document.getElementById('radar-canvas');
-        const ctx = radarCanvas.getContext('2d');
-        let radarAngle = 0;
-        
-        // Simulated aircraft/jets on radar
-        const radarTargets = [
-            { x: 35, y: 40, label: 'F-16 Fighter' },
-            { x: 80, y: 30, label: 'Commercial Flight' },
-            { x: 60, y: 85, label: 'UAV Recon' }
-        ];
-
-        function drawRadar() {
-            ctx.clearRect(0, 0, 120, 120);
-            
-            // Radar Background Rings
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.arc(60, 60, 50, 0, Math.PI * 2); ctx.stroke();
-            ctx.beginPath(); ctx.arc(60, 60, 30, 0, Math.PI * 2); ctx.stroke();
-            ctx.beginPath(); ctx.arc(60, 60, 10, 0, Math.PI * 2); ctx.stroke();
-
-            // Crosshairs
-            ctx.beginPath(); ctx.moveTo(60, 10); ctx.lineTo(60, 110); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(10, 60); ctx.lineTo(110, 60); ctx.stroke();
-
-            // Sweep Line
-            ctx.save();
-            ctx.translate(60, 60);
-            ctx.rotate(radarAngle);
-            const gradient = ctx.createLinearGradient(0, 0, 50, 0);
-            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
-            gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, 50, -0.4, 0);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-            ctx.restore();
-
-            // Draw blips (Fighter Jets / Planes)
-            radarTargets.forEach(t => {
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath();
-                ctx.arc(t.x, t.y, 3, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            radarAngle += 0.04;
-            requestAnimationFrame(drawRadar);
-        }
-        drawRadar();
-
-        // --- INTELLIGENCE LOG SYSTEM & CONTROLS ---
-        let aiLogs = [];
-        function pushAILog(msg) {
-            const time = new Date().toUTCString().split(' ')[4];
-            aiLogs.unshift(`[${time}] ${msg}`);
-            if (aiLogs.length > 20) aiLogs.pop();
-            document.getElementById('ai-log-content').innerHTML = aiLogs.join('<br>');
-        }
-
-        // Sync / Lock Button Action
-        function executeSync() {
-            const sector = document.getElementById('target-input').value.trim() || "Pakistan";
-            document.getElementById('link-status').innerText = `LOCKED: ${sector}...`;
-            document.getElementById('velocity-data').innerText = `${(Math.random() * 450 + 120).toFixed(1)} KM/H`;
-            pushAILog(`Target sector "${sector}" locked via military satellite constellation.`);
-            pushAILog(`SIGINT: Cell towers and IP telemetry calibrated successfully.`);
-        }
-
-        document.getElementById('sync-btn').addEventListener('click', executeSync);
-        document.getElementById('target-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') executeSync();
-        });
-
-        // Mode Switching
-        function setActiveBtn(id) {
-            ['mode-globe', 'mode-matrix', 'mode-towers', 'mode-tracker', 'mode-fence'].forEach(btnId => {
-                document.getElementById(btnId).classList.remove('active');
-            });
-            document.getElementById(id).classList.add('active');
-        }
-
-        document.getElementById('mode-globe').addEventListener('click', () => {
-            setActiveBtn('mode-globe');
-            autoRotate = true;
-            pushAILog("3D Planetary Globe view active. Orbital rotation normalized.");
-        });
-
-        document.getElementById('mode-matrix').addEventListener('click', () => {
-            setActiveBtn('mode-matrix');
-            autoRotate = false;
-            earthGlobe.rotation.set(0.5, 0.8, 0);
-            pushAILog("Matrix Grid tactical wireframe projection engaged.");
-        });
-
-        document.getElementById('mode-towers').addEventListener('click', () => {
-            setActiveBtn('mode-towers');
-            pushAILog("SIGINT Cell Tower Masts scanned: 4 active telecom nodes with blinking LED beacons online.");
-        });
-
-        document.getElementById('mode-tracker').addEventListener('click', () => {
-            setActiveBtn('mode-tracker');
-            pushAILog("IMSI & IP Location Tracker active: Triangulating mobile signatures across sector.");
-        });
-
-        document.getElementById('mode-fence').addEventListener('click', () => {
-            setActiveBtn('mode-fence');
-            pushAILog("Geo-Fence Security Perimeter locked: 3.5 KM radius data logging operational.");
+        document.getElementById('cam-btn').addEventListener('click', () => {
+            const camBox = document.getElementById('camera-feed');
+            camBox.style.display = camBox.style.display === 'block' ? 'none' : 'block';
+            document.getElementById('log').innerHTML = "ATTEMPTING CAMERA UPLINK...";
         });
     </script>
 </body>
