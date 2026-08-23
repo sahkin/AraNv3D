@@ -2,417 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AegisX Sovereign Intelligence - Global Tactical Command Deck</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision X - Internal Testing Build</title>
     
-    <!-- Leaflet CSS & JS CDN -->
+    <!-- Leaflet & Routing -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: 'Courier New', Courier, monospace; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
-
-        /* Multi-Spectral Sat / Thermal Filters */
-        .sat-overlay-night {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: radial-gradient(circle, rgba(2,6,23,0.1) 0%, rgba(1,3,10,0.85) 90%);
-            pointer-events: none; z-index: 400; mix-blend-mode: multiply; transition: 0.5s;
-        }
-        .sat-overlay-thermal {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(239, 68, 68, 0.15); pointer-events: none; z-index: 400; mix-blend-mode: color; display: none;
+        /* Premium Glassmorphism UI */
+        .hud-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            width: 95%; max-width: 450px; display: flex; flex-direction: column; gap: 15px; pointer-events: none;
         }
 
-        /* Tactical HUD Layer */
-        .hud-wrapper {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 10px;
+        .panel {
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;
+            padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); pointer-events: auto;
         }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .logo { color: #fff; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+        .status { color: #22c55e; font-size: 10px; font-weight: bold; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 10px #22c55e; animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Input Fields */
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        input {
+            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(0, 0, 0, 0.5); color: #38bdf8; font-size: 14px; outline: none;
+        }
+        input::placeholder { color: #64748b; }
         
-        .hud-top { display: flex; flex-direction: column; gap: 6px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
-
-        .search-box {
-            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.8); border-radius: 8px; padding: 6px 10px;
-            display: flex; gap: 6px; box-shadow: 0 20px 40px rgba(0,0,0,0.9);
-        }
-        .search-field {
-            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 11px; font-weight: bold; font-family: monospace;
-        }
-        .search-field::placeholder { color: #475569; }
-        
-        .lock-action-btn {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 6px;
-            padding: 0 12px; color: white; font-weight: bold; font-size: 8px; letter-spacing: 1px; cursor: pointer;
-            box-shadow: 0 0 15px rgba(2, 132, 199, 0.6);
+        button.primary-btn {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #1d4ed8);
+            color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: bold;
+            cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
         }
 
-        .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        /* Toggles */
+        .layer-controls { display: flex; gap: 10px; justify-content: space-between; }
+        .layer-btn {
+            flex: 1; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer;
+        }
+        .layer-btn.active { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #22c55e; }
 
-        .tele-panel {
-            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 5px 8px;
-            color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
-        }
-        
-        .tele-title { color: #38bdf8; font-size: 6px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-        .tele-data { color: #ffffff; font-size: 10px; font-weight: bold; font-family: monospace; margin-top: 1px; }
-        .active-dot { width: 4px; height: 4px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 3px; box-shadow: 0 0 6px #22c55e; }
-
-        /* AI Intelligence & Geo-Fence Data Feed Box */
-        .intelligence-panel {
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(34, 197, 94, 0.7); border-radius: 6px; padding: 6px 8px;
-            color: #f8fafc; max-height: 95px; overflow-y: auto; pointer-events: auto;
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
-        }
-        .ai-title { color: #22c55e; font-size: 7px; font-weight: bold; letter-spacing: 1px; display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .ai-logs { font-size: 8.5px; color: #cbd5e1; font-family: monospace; line-height: 1.25; }
-
-        /* Bottom Controls */
-        .hud-bottom { display: flex; gap: 4px; pointer-events: auto; width: 100%; max-width: 480px; margin: 0 auto; }
-        .nav-btn {
-            flex: 1; padding: 8px 2px; border-radius: 6px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; font-size: 7.5px;
-            letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; text-align: center;
-        }
-        .nav-btn.active {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff; border-color: #38bdf8;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
-        }
-
-        /* Custom Blinking LED Tower Beacon Icon */
-        .tower-beacon-container {
-            position: relative; width: 20px; height: 26px;
-        }
-        .tower-icon-body {
-            position: absolute; bottom: 0; left: 6px; width: 8px; height: 18px; background: #f59e0b;
-            border-top: 2px solid #fff; box-shadow: 0 0 10px #f59e0b;
-        }
-        .tower-led-light {
-            position: absolute; top: 0; left: 4px; width: 12px; height: 12px; background: #ef4444;
-            border-radius: 50%; box-shadow: 0 0 12px #ef4444, 0 0 20px #ef4444;
-            animation: led-blink 0.8s infinite alternate;
-        }
-        @keyframes led-blink {
-            0% { opacity: 0.2; transform: scale(0.8); }
-            100% { opacity: 1; transform: scale(1.2); }
-        }
-
-        /* Target Pulse */
-        .tactical-pulse {
-            width: 22px; height: 22px; background: rgba(34, 197, 94, 0.3);
-            border: 2px solid #22c55e; border-radius: 50%; box-shadow: 0 0 15px #22c55e;
-            animation: pulse-ring 1.5s infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.6); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
+        /* Hide Default Routing Box for clean look */
+        .leaflet-routing-container { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
-    <div class="sat-overlay-night" id="night-shield"></div>
-    <div class="sat-overlay-thermal" id="thermal-shield"></div>
 
-    <div class="hud-wrapper">
-        <div class="hud-top">
-            <div class="search-box">
-                <input type="text" class="search-field" id="target-input" placeholder="ENTER TARGET SECTOR (e.g. Islamabad, Abbottabad)...">
-                <button class="lock-action-btn" id="lock-btn">ACQUIRE</button>
+    <div class="hud-container">
+        <div class="panel">
+            <div class="header">
+                <div class="logo">VISION X // OS</div>
+                <div class="status"><div class="dot"></div> SYSTEM ONLINE</div>
             </div>
 
-            <div class="telemetry-bar">
-                <div class="tele-panel">
-                    <div class="tele-title"><span class="active-dot"></span>SYS TIME</div>
-                    <div class="tele-data" id="sys-time">00:00:00</div>
-                </div>
-                <div class="tele-panel">
-                    <div class="tele-title">SAT CONSTELLATION</div>
-                    <div class="tele-data" id="sat-mode-label">ESRI-OPTIC</div>
-                </div>
-                <div class="tele-panel" style="text-align: right;">
-                    <div class="tele-title">COORDINATES</div>
-                    <div class="tele-data" id="coord-display">33.68, 73.04</div>
-                </div>
+            <div class="input-group">
+                <input type="text" id="start-input" placeholder="Origin (e.g. Islamabad)">
+                <input type="text" id="end-input" placeholder="Destination (e.g. Abbottabad)">
             </div>
 
-            <!-- Autonomous AI & Geo-Fence Intelligence Stream -->
-            <div class="intelligence-panel">
-                <div class="ai-title">
-                    <span>AEGIS-X AI INTELLIGENCE & TELEMETRY STREAM</span>
-                    <span id="ai-status" style="color: #38bdf8;">ACTIVE SCAN</span>
-                </div>
-                <div class="ai-logs" id="ai-log-content">
-                    [AI CORE] System initialized. Waiting for sector lock & telemetry stream...
-                </div>
-            </div>
+            <button class="primary-btn" id="route-btn">INITIATE ROUTE</button>
         </div>
 
-        <div class="hud-bottom">
-            <button class="nav-btn active" id="mode-sat">OPTICAL SAT</button>
-            <button class="nav-btn" id="mode-thermal">THERMAL</button>
-            <button class="nav-btn" id="mode-towers">CELL TOWERS</button>
-            <button class="nav-btn" id="mode-tracker">CELL TRACKER</button>
-            <button class="nav-btn" id="mode-fence">GEO-FENCE</button>
+        <!-- Simulated Data Layers for Investor Pitch -->
+        <div class="panel" style="padding: 10px 15px;">
+            <div class="layer-controls">
+                <button class="layer-btn active" id="btn-sat">SATELLITE</button>
+                <button class="layer-btn" id="btn-traffic" onclick="toggleLayer('btn-traffic')">TRAFFIC AI</button>
+                <button class="layer-btn" id="btn-weather" onclick="toggleLayer('btn-weather')">WEATHER</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([33.6844, 73.0479], 5);
+        // 1. Initialize Map on Islamabad
+        const map = L.map('map', { zoomControl: false }).setView([33.6844, 73.0479], 14);
 
-        // Multi-Spectral Tile Layers
-        const opticalLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
-        const labelsLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+        // 2. High-Res Satellite View (Zoom Level 21)
+        L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 21,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        }).addTo(map);
 
-        let currentMarker = null;
-        let currentCircle = null;
-        let towerLayers = [];
-        let trackerMarkers = [];
-        let activeMode = 'sat';
-        let lastCenterLat = 33.6844;
-        let lastCenterLon = 73.0479;
-        let aiLogs = [];
+        // 3. Routing Engine
+        let routingControl = L.Routing.control({
+            waypoints: [],
+            routeWhileDragging: true,
+            lineOptions: {
+                styles: [{ color: '#0ea5e9', opacity: 0.8, weight: 6 }]
+            },
+            createMarker: function(i, waypoint, n) {
+                return L.marker(waypoint.latLng, { draggable: true });
+            }
+        }).addTo(map);
 
-        // Live UTC Clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('sys-time').innerText = now.toUTCString().split(' ')[4];
-        }, 1000);
+        // Simple testing database
+        const coords = {
+            'islamabad': [33.6844, 73.0479],
+            'abbottabad': [34.1463, 73.2117],
+            'lahore': [31.5204, 74.3587],
+            'karachi': [24.8607, 67.0011]
+        };
 
-        map.on('move', () => {
-            const center = map.getCenter();
-            lastCenterLat = center.lat;
-            lastCenterLon = center.lng;
-            document.getElementById('coord-display').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
-        });
-
-        function pushAILog(msg) {
-            const time = new Date().toUTCString().split(' ')[4];
-            aiLogs.unshift(`[${time}] ${msg}`);
-            if (aiLogs.length > 25) aiLogs.pop();
-            document.getElementById('ai-log-content').innerHTML = aiLogs.join('<br>');
-        }
-
-        function performLock() {
-            const query = document.getElementById('target-input').value.trim();
-            if (!query) return;
-
-            pushAILog(`Triangulating target sector: "${query}" via orbital satellites...`);
-
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-                        const displayName = data[0].display_name.split(',')[0];
-
-                        lastCenterLat = lat;
-                        lastCenterLon = lon;
-                        map.flyTo([lat, lon], 15, { duration: 1.5 });
-
-                        if (currentMarker) map.removeLayer(currentMarker);
-                        
-                        const customIcon = L.divIcon({
-                            className: 'tactical-pulse',
-                            iconSize: [22, 22],
-                            iconAnchor: [11, 11]
-                        });
-
-                        currentMarker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-                        currentMarker.bindPopup(`<b style="color:#0284c7;">LOCKED TARGET: ${displayName}</b><br>Lat: ${lat}, Lon: ${lon}`).openPopup();
-
-                        pushAILog(`Target Locked: ${displayName} [${lat.toFixed(3)}, ${lon.toFixed(3)}]`);
-
-                        if (activeMode === 'fence') setupGeoFence(lat, lon, displayName);
-                        if (activeMode === 'towers') fetchRealCellTowers(lat, lon);
-                        if (activeMode === 'tracker') executeCellTracker(lat, lon);
-
-                    } else {
-                        pushAILog(`[ERROR] Target sector "${query}" not found in orbital database.`);
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    pushAILog(`[CRITICAL] Uplink connection error.`);
-                });
-        }
-
-        document.getElementById('lock-btn').addEventListener('click', performLock);
-        document.getElementById('target-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performLock();
-        });
-
-        // Mode Switching
-        function clearAllOverlays() {
-            clearTowers();
-            clearTrackers();
-            if (currentCircle) { map.removeLayer(currentCircle); currentCircle = null; }
-        }
-
-        document.getElementById('mode-sat').addEventListener('click', () => {
-            activeMode = 'sat';
-            setActiveBtn('mode-sat');
-            clearAllOverlays();
-            document.getElementById('night-shield').style.display = 'block';
-            document.getElementById('thermal-shield').style.display = 'none';
-            document.getElementById('sat-mode-label').innerText = "ESRI-OPTIC";
-            pushAILog("Switched to High-Resolution Optical Satellite Constellation.");
-        });
-
-        document.getElementById('mode-thermal').addEventListener('click', () => {
-            activeMode = 'thermal';
-            setActiveBtn('mode-thermal');
-            clearAllOverlays();
-            document.getElementById('night-shield').style.display = 'none';
-            document.getElementById('thermal-shield').style.display = 'block';
-            document.getElementById('sat-mode-label').innerText = "IR-THERMAL";
-            pushAILog("Infrared & Thermal Multi-Spectral Vision Activated.");
-        });
-
-        document.getElementById('mode-towers').addEventListener('click', () => {
-            activeMode = 'towers';
-            setActiveBtn('mode-towers');
-            clearTrackers();
-            if (currentCircle) { map.removeLayer(currentCircle); currentCircle = null; }
-            document.getElementById('sat-mode-label').innerText = "SIGINT-TOWERS";
-            fetchRealCellTowers(lastCenterLat, lastCenterLon);
-        });
-
-        document.getElementById('mode-tracker').addEventListener('click', () => {
-            activeMode = 'tracker';
-            setActiveBtn('mode-tracker');
-            clearTowers();
-            if (currentCircle) { map.removeLayer(currentCircle); currentCircle = null; }
-            document.getElementById('sat-mode-label').innerText = "IMSI-TRACKER";
-            executeCellTracker(lastCenterLat, lastCenterLon);
-        });
-
-        document.getElementById('mode-fence').addEventListener('click', () => {
-            activeMode = 'fence';
-            setActiveBtn('mode-fence');
-            clearAllOverlays();
-            document.getElementById('sat-mode-label').innerText = "GEO-PERIMETER";
-            setupGeoFence(lastCenterLat, lastCenterLon, "Sector Perimeter");
-        });
-
-        function setActiveBtn(id) {
-            ['mode-sat', 'mode-thermal', 'mode-towers', 'mode-tracker', 'mode-fence'].forEach(btnId => {
-                document.getElementById(btnId).classList.remove('active');
-            });
-            document.getElementById(id).classList.add('active');
-        }
-
-        // Real Cell Towers with Blinking LED Beacon Icon via Overpass API
-        function fetchRealCellTowers(lat, lon) {
-            clearTowers();
-            pushAILog(`Scanning telecom spectrum for active cell towers around [${lat.toFixed(2)}, ${lon.toFixed(2)}]...`);
-
-            const bbox = `${lat-0.06},${lon-0.06},${lat+0.06},${lon+0.06}`;
-            const query = `[out:json];(node["telecom"="tower"](${bbox});way["telecom"="tower"](${bbox});node["man_made"="mast"](${bbox});way["man_made"="mast"](${bbox});node["communication"="tower"](${bbox}););out center;`;
-
-            fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    let elements = data.elements || [];
-                    
-                    if (elements.length === 0) {
-                        elements = [
-                            {lat: lat + 0.012, lon: lon + 0.012, tags: {name: 'Cell Node Alpha (LTE/5G)'}},
-                            {lat: lat - 0.012, lon: lon - 0.012, tags: {name: 'Telecom Mast Beta (Encrypted)'}},
-                            {lat: lat + 0.02, lon: lon - 0.015, tags: {name: 'Relay Tower 03'}},
-                            {lat: lat - 0.018, lon: lon + 0.02, tags: {name: 'Sovereign Node 04'}}
-                        ];
-                    }
-
-                    const beaconIcon = L.divIcon({
-                        className: 'tower-beacon-container',
-                        html: '<div class="tower-led-light"></div><div class="tower-icon-body"></div>',
-                        iconSize: [20, 26],
-                        iconAnchor: [10, 26]
-                    });
-
-                    elements.forEach(el => {
-                        let tLat = el.lat || (el.center ? el.center.lat : null);
-                        let tLon = el.lon || (el.center ? el.center.lon : null);
-                        let name = (el.tags && el.tags.name) ? el.tags.name : "SECURE TELECOM MAST";
-
-                        if (tLat && tLon) {
-                            const tMarker = L.marker([tLat, tLon], { icon: beaconIcon }).addTo(map)
-                                .bindPopup(`<b style="color:#d97706;">${name}</b><br><span style="color:#0284c7;">FREQ: 1800-2100 MHz</span><br>STATUS: TRANSMITTING & ACTIVE`);
-                            towerLayers.push(tMarker);
-                        }
-                    });
-
-                    pushAILog(`SIGINT: Successfully mapped ${towerLayers.length} active cell towers with blinking telemetry beacons.`);
-                })
-                .catch(err => {
-                    console.error(err);
-                    pushAILog(`[ERROR] Cell tower frequency scan failed.`);
-                });
-        }
-
-        function clearTowers() {
-            towerLayers.forEach(t => map.removeLayer(t));
-            towerLayers = [];
-        }
-
-        // Cell Phone Trilateration & Tracker System
-        function executeCellTracker(lat, lon) {
-            clearTrackers();
-            pushAILog(`Initializing Cell Phone Trilateration & IMSI Tracker for Sector...`);
-
-            // Simulate multi-point trilateration nodes tracking mobile signatures
-            const simulatedTargets = [
-                {lat: lat + 0.008, lon: lon + 0.006, id: 'MOBILE-ID #8841 (Active Signal)', sig: '-64 dBm (High)'},
-                {lat: lat - 0.009, lon: lon + 0.011, id: 'DEVICE SIG #9923 (Encrypted)', sig: '-78 dBm (Moderate)'},
-                {lat: lat + 0.004, lon: lon - 0.012, id: 'TARGET PHONE #1042 (Trilat Match)', sig: '-52 dBm (Strong)'}
-            ];
-
-            simulatedTargets.forEach(target => {
-                const trIcon = L.divIcon({
-                    className: 'tactical-pulse',
-                    iconSize: [22, 22],
-                    iconAnchor: [11, 11]
-                });
-                const marker = L.marker([target.lat, target.lon], { icon: trIcon }).addTo(map)
-                    .bindPopup(`<b style="color:#ef4444;">${target.id}</b><br>Signal Strength: ${target.sig}<br>Coordinates: ${target.lat.toFixed(4)}, ${target.lon.toFixed(4)}`);
-                trackerMarkers.push(marker);
-            });
-
-            pushAILog(`TRILATERATION: 3 active mobile signatures locked and positioned via tower triangulation.`);
-        }
-
-        function clearTrackers() {
-            trackerMarkers.forEach(m => map.removeLayer(m));
-            trackerMarkers = [];
-        }
-
-        // Geo-Fence Perimeter Setup & Logger
-        function setupGeoFence(lat, lon, label) {
-            if (currentCircle) map.removeLayer(currentCircle);
+        // 4. Action Button
+        document.getElementById('route-btn').addEventListener('click', () => {
+            const btn = document.getElementById('route-btn');
+            btn.innerText = "CALCULATING...";
             
-            const radiusMeters = 3500;
-            currentCircle = L.circle([lat, lon], {
-                color: '#ef4444',
-                fillColor: '#ef4444',
-                fillOpacity: 0.25,
-                radius: radiusMeters
-            }).addTo(map);
+            setTimeout(() => {
+                const start = document.getElementById('start-input').value.toLowerCase().trim();
+                const end = document.getElementById('end-input').value.toLowerCase().trim();
+                
+                const startCoord = coords[start] || [33.6844, 73.0479];
+                const endCoord = coords[end] || [34.1463, 73.2117];
 
-            pushAILog(`GEO-FENCE SECURED: Perimeter active around ${label}`);
-            pushAILog(`Radius: ${radiusMeters}m | Telemetry recording & breach alert active.`);
+                routingControl.setWaypoints([
+                    L.latLng(startCoord[0], startCoord[1]),
+                    L.latLng(endCoord[0], endCoord[1])
+                ]);
+                
+                btn.innerText = "ROUTE LOCKED";
+                btn.style.background = "linear-gradient(135deg, #22c55e, #16a34a)";
+                
+                setTimeout(() => {
+                    btn.innerText = "INITIATE ROUTE";
+                    btn.style.background = "linear-gradient(135deg, #0284c7, #1d4ed8)";
+                }, 3000);
+            }, 1000);
+        });
+
+        // Toggle Buttons (Visual feedback for testing)
+        function toggleLayer(id) {
+            const btn = document.getElementById(id);
+            btn.classList.toggle('active');
+            // This is where real API layers would toggle on/off in the future
         }
     </script>
 </body>
 </html>
-
