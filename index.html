@@ -3,51 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AEGIS-X PLANETARY GUARDIAN ENGINE</title>
+    <title>VISIONX CORE OS - CENTURY ENGINE</title>
     
-    <!-- GIS & 3D Rendering Engine CDN -->
+    <!-- Ultra High-Performance GIS Engine -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         :root {
-            --bg-dark: #010409;
-            --hud-teal: #38bdf8;
-            --hud-green: #22c55e;
-            --hud-panel: rgba(2, 6, 23, 0.92);
+            --bg-dark: #000000;
+            --hud-blue: #0284c7;
+            --hud-border: rgba(56, 189, 248, 0.5);
+            --hud-bg: rgba(3, 7, 18, 0.90);
             --font-mono: 'Courier New', Courier, monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); font-family: var(--font-mono); }
         
+        /* 2D Satellite Viewport */
         #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
 
-        /* Real 3D WebGL Globe Viewport */
+        /* 3D WebGL Globe Viewport */
         #globe-container {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 2; background: #000; display: none;
         }
 
-        /* Tactical Radar Overlay Element */
+        /* Radar Overlay (Bottom Right - Screenshot 3) */
         .radar-box {
-            position: absolute; bottom: 85px; right: 20px; width: 110px; height: 110px;
+            position: absolute; bottom: 80px; right: 20px; width: 100px; height: 100px;
             border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.4);
-            background: radial-gradient(circle, rgba(2,6,23,0.3) 0%, rgba(2,6,23,0.8) 80%);
+            background: radial-gradient(circle, rgba(2,6,23,0.2) 0%, rgba(2,6,23,0.8) 80%);
             z-index: 1001; pointer-events: none; display: none; overflow: hidden;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
         }
-
         .radar-sweep {
             width: 100%; height: 100%;
-            background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.4) 0deg, transparent 60deg);
-            border-radius: 50%; animation: radar-spin 3s linear infinite;
+            background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.5) 0deg, transparent 60deg);
+            border-radius: 50%; animation: radar-spin 2.5s linear infinite;
         }
-
         @keyframes radar-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Tactical HUD Layer */
+        /* Futuristic HUD Frame */
         .hud-wrapper {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
@@ -56,65 +55,65 @@
         .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
 
         .search-box {
-            background: var(--hud-panel); backdrop-filter: blur(20px);
-            border: 1px solid var(--hud-teal); border-radius: 8px; padding: 8px 12px;
-            display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            background: var(--hud-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--hud-border); border-radius: 6px; padding: 6px 10px;
+            display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
         .search-field {
-            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 12px; font-weight: bold; font-family: var(--font-mono);
+            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 13px; font-weight: bold; font-family: var(--font-mono);
         }
         
         .action-btn {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 6px;
-            padding: 0 16px; color: white; font-weight: bold; font-size: 10px; letter-spacing: 1px; cursor: pointer;
+            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 4px;
+            padding: 6px 18px; color: white; font-weight: bold; font-size: 10px; letter-spacing: 1px; cursor: pointer;
         }
 
         .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
         .tele-panel {
-            background: var(--hud-panel); backdrop-filter: blur(15px);
-            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 10px;
-            color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
+            background: var(--hud-bg); backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 6px 10px;
         }
         
-        .tele-title { color: #38bdf8; font-size: 7px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .tele-title { color: #38bdf8; font-size: 7.5px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         .tele-data { color: #ffffff; font-size: 11px; font-weight: bold; font-family: var(--font-mono); margin-top: 2px; }
 
         /* Bottom Controls */
         .hud-bottom { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
         .nav-btn {
             flex: 1; padding: 12px 2px; border-radius: 6px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; font-size: 8.5px;
+            border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: bold; font-size: 8.5px;
             letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; text-align: center;
         }
         .nav-btn.active {
             background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff; border-color: #38bdf8;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
         }
 
-        .pulse-marker {
-            width: 20px; height: 20px; background: rgba(56, 189, 248, 0.4);
-            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8;
-            animation: pulse-ring 1.2s infinite ease-in-out;
+        /* Target Marker Pin */
+        .target-marker {
+            width: 18px; height: 18px; background: rgba(56, 189, 248, 0.3);
+            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 12px #38bdf8;
+            animation: pulse-ring 1s infinite ease-in-out;
         }
         @keyframes pulse-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <!-- 2D High-Precision Map -->
+    <!-- Satellite Map Layer -->
     <div id="map"></div>
 
-    <!-- Real WebGL 3D Globe Element -->
+    <!-- 3D Globe Layer -->
     <div id="globe-container"></div>
 
-    <!-- Live Tactical Radar Overlay -->
+    <!-- Animated Radar Scanner -->
     <div class="radar-box" id="radar-overlay">
         <div class="radar-sweep"></div>
     </div>
 
-    <!-- HUD Overlay -->
+    <!-- Core OS Interface Wrapper -->
     <div class="hud-wrapper">
         <div class="hud-top">
             <div class="search-box">
@@ -142,43 +141,82 @@
     </div>
 
     <script>
-        // Leaflet 2D Map Initialization
-        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 20 }).setView([33.70, 73.06], 15);
+        // Initialize Map Engine with Hybrid HD Satellite Vector Tiles (Places + Aerial HD View)
+        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 20 }).setView([33.7025, 73.0600], 16);
         
-        // Clear HD Google Satellite + Places Labels
+        // High-Precision Hybrid Satellite Layers (Includes Street Names, Restaurants, Places)
         L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
 
         let currentMarker = null;
 
+        // Clock Update
         setInterval(() => {
             document.getElementById('sys-time').innerText = new Date().toUTCString().split(' ')[4] + ' UTC';
         }, 1000);
 
+        // Coordinate Tracker
         map.on('move', () => {
             const center = map.getCenter();
             document.getElementById('coord-display').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
         });
 
-        // Search Location Logic
-        document.getElementById('lock-btn').addEventListener('click', () => {
+        // 100-YEAR ENGINE FIX: Direct Location Lock & Automatic Zoom-To-Map
+        function executeLocationLock() {
             const query = document.getElementById('target-input').value.trim();
             if (!query) return;
+
+            // Automatically Switch to Satellite Map View if currently on 3D Globe
+            switchToSatelliteMode();
+
+            // High Precision Geocoding Engine
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.length > 0) {
-                        const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
-                        map.flyTo([lat, lon], 16);
-                        if (currentMarker) map.removeLayer(currentMarker);
-                        const icon = L.divIcon({ className: 'pulse-marker', iconSize: [20, 20], iconAnchor: [10, 10] });
-                        currentMarker = L.marker([lat, lon], { icon }).addTo(map);
-                    }
-                });
-        });
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
 
-        // ----------------------------------------------------
-        // THREE.JS REAL 3D GLOBE ENGINE (PHOTO-REALISTIC EARTH)
-        // ----------------------------------------------------
+                        // Fly directly into the precise high-definition street satellite layer
+                        map.flyTo([lat, lon], 18, { duration: 2.0 });
+
+                        if (currentMarker) map.removeLayer(currentMarker);
+
+                        const customIcon = L.divIcon({ className: 'target-marker', iconSize: [18, 18], iconAnchor: [9, 9] });
+                        currentMarker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+                    } else {
+                        alert("SECTOR NOT FOUND IN PLANETARY INDEX");
+                    }
+                }).catch(err => {
+                    console.error("Geocoding failed", err);
+                });
+        }
+
+        document.getElementById('lock-btn').addEventListener('click', executeLocationLock);
+        document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') executeLocationLock(); });
+
+        // Viewport Switcher Core Logic
+        function switchToSatelliteMode() {
+            document.getElementById('globe-container').style.display = 'none';
+            document.getElementById('radar-overlay').style.display = 'none';
+            document.getElementById('mode-sat').classList.add('active');
+            document.getElementById('mode-globe').classList.remove('active');
+        }
+
+        function switchToGlobeMode() {
+            document.getElementById('globe-container').style.display = 'block';
+            document.getElementById('radar-overlay').style.display = 'block';
+            document.getElementById('mode-globe').classList.add('active');
+            document.getElementById('mode-sat').classList.remove('active');
+
+            if (!is3DInitialized) {
+                init3DGlobe();
+            }
+        }
+
+        document.getElementById('mode-sat').addEventListener('click', switchToSatelliteMode);
+        document.getElementById('mode-globe').addEventListener('click', switchToGlobeMode);
+
+        // THREE.JS REALISTIC PLANETARY GLOBE ENGINE
         let scene, camera, renderer, globeMesh;
         let is3DInitialized = false;
 
@@ -194,58 +232,32 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
             scene.add(ambientLight);
 
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
             sunLight.position.set(5, 3, 5);
             scene.add(sunLight);
 
-            // High-Resolution NASA Satellite Earth Sphere
             const geometry = new THREE.SphereGeometry(1, 64, 64);
             const textureLoader = new THREE.TextureLoader();
             
-            // Photo-Realistic Earth Satellite Texture
+            // Ultra Realistic NASA Earth Texture Map
             const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
             
-            const material = new THREE.MeshPhongMaterial({
-                map: earthTexture,
-                shininess: 15
-            });
-
+            const material = new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 10 });
             globeMesh = new THREE.Mesh(geometry, material);
             scene.add(globeMesh);
 
-            // Auto-Rotation Animation Loop
             function animate() {
                 requestAnimationFrame(animate);
-                if (globeMesh) globeMesh.rotation.y += 0.002;
+                if (globeMesh) globeMesh.rotation.y += 0.0015;
                 renderer.render(scene, camera);
             }
             animate();
 
             is3DInitialized = true;
         }
-
-        // Mode Switching Mechanics
-        document.getElementById('mode-sat').addEventListener('click', () => {
-            document.getElementById('globe-container').style.display = 'none';
-            document.getElementById('radar-overlay').style.display = 'none';
-            document.getElementById('mode-sat').classList.add('active');
-            document.getElementById('mode-globe').classList.remove('active');
-        });
-
-        document.getElementById('mode-globe').addEventListener('click', () => {
-            document.getElementById('globe-container').style.display = 'block';
-            document.getElementById('radar-overlay').style.display = 'block';
-            document.getElementById('mode-globe').classList.add('active');
-            document.getElementById('mode-sat').classList.remove('active');
-
-            if (!is3DInitialized) {
-                init3DGlobe();
-            }
-        });
 
         window.addEventListener('resize', () => {
             if (is3DInitialized && camera && renderer) {
@@ -255,11 +267,11 @@
             }
         });
 
-        // Background Telemetry Processor (Earthquake, Weather Engine)
+        // Silent Background Analytics Engine (Weather, Seismic Telemetry)
         setInterval(() => {
             fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
-                .then(r => r.json()).then(d => console.log("[BG ANALYTICS] Seismic Data Sync OK")).catch(() => {});
-        }, 60000);
+                .then(r => r.json()).then(() => {}).catch(() => {});
+        }, 30000);
     </script>
 </body>
 </html>
