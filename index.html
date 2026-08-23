@@ -3,41 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AEGIS-X SOVEREIGN INTELLIGENCE - PLANETARY COMMAND</title>
+    <title>AEGIS-X PLANETARY GUARDIAN ENGINE</title>
     
-    <!-- Leaflet Engine & Canvas Extensions -->
+    <!-- GIS & 3D Rendering Engine CDN -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         :root {
-            --bg-base: #010409;
-            --hud-border: #38bdf8;
-            --hud-bg: rgba(2, 6, 23, 0.92);
-            --accent-green: #22c55e;
-            --accent-red: #ef4444;
+            --bg-dark: #010409;
+            --hud-teal: #38bdf8;
+            --hud-green: #22c55e;
+            --hud-panel: rgba(2, 6, 23, 0.92);
             --font-mono: 'Courier New', Courier, monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-base); font-family: var(--font-mono); }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); font-family: var(--font-mono); }
         
         #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
 
-        /* 3D Globe Visual Mode Container */
-        .globe-wrapper {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2;
-            background: #000; display: none; align-items: center; justify-content: center;
-        }
-        
-        .planetary-sphere {
-            width: 320px; height: 320px; border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #38bdf8 0%, #1e40af 40%, #020617 90%);
-            box-shadow: 0 0 60px rgba(56, 189, 248, 0.4), inset -20px -20px 50px rgba(0,0,0,0.9);
-            position: relative; animation: sphere-rotate 25s infinite linear;
+        /* Real 3D WebGL Globe Viewport */
+        #globe-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 2; background: #000; display: none;
         }
 
-        @keyframes sphere-rotate { 0% { background-position: 0 0; } 100% { background-position: 400px 0; } }
+        /* Tactical Radar Overlay Element */
+        .radar-box {
+            position: absolute; bottom: 85px; right: 20px; width: 110px; height: 110px;
+            border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.4);
+            background: radial-gradient(circle, rgba(2,6,23,0.3) 0%, rgba(2,6,23,0.8) 80%);
+            z-index: 1001; pointer-events: none; display: none; overflow: hidden;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .radar-sweep {
+            width: 100%; height: 100%;
+            background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.4) 0deg, transparent 60deg);
+            border-radius: 50%; animation: radar-spin 3s linear infinite;
+        }
+
+        @keyframes radar-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Tactical HUD Layer */
         .hud-wrapper {
@@ -48,14 +56,14 @@
         .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
 
         .search-box {
-            background: var(--hud-bg); backdrop-filter: blur(25px);
-            border: 1px solid var(--hud-border); border-radius: 8px; padding: 8px 12px;
+            background: var(--hud-panel); backdrop-filter: blur(20px);
+            border: 1px solid var(--hud-teal); border-radius: 8px; padding: 8px 12px;
             display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.9);
         }
+
         .search-field {
             flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 12px; font-weight: bold; font-family: var(--font-mono);
         }
-        .search-field::placeholder { color: #475569; }
         
         .action-btn {
             background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 6px;
@@ -65,7 +73,7 @@
         .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
         .tele-panel {
-            background: var(--hud-bg); backdrop-filter: blur(15px);
+            background: var(--hud-panel); backdrop-filter: blur(15px);
             border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 10px;
             color: #f8fafc; display: flex; flex-direction: column; justify-content: center;
         }
@@ -73,7 +81,7 @@
         .tele-title { color: #38bdf8; font-size: 7px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         .tele-data { color: #ffffff; font-size: 11px; font-weight: bold; font-family: var(--font-mono); margin-top: 2px; }
 
-        /* Bottom Controls (Image 2 & 3 Style) */
+        /* Bottom Controls */
         .hud-bottom { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
         .nav-btn {
             flex: 1; padding: 12px 2px; border-radius: 6px; background: rgba(15, 23, 42, 0.95);
@@ -85,7 +93,6 @@
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
         }
 
-        /* Marker CSS Animation */
         .pulse-marker {
             width: 20px; height: 20px; background: rgba(56, 189, 248, 0.4);
             border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8;
@@ -96,19 +103,22 @@
 </head>
 <body>
 
-    <!-- 2D High Precision Map Layer -->
+    <!-- 2D High-Precision Map -->
     <div id="map"></div>
 
-    <!-- 3D Global Earth Mode Screen (Screenshot 3 Replication) -->
-    <div class="globe-wrapper" id="globe-view">
-        <div class="planetary-sphere"></div>
+    <!-- Real WebGL 3D Globe Element -->
+    <div id="globe-container"></div>
+
+    <!-- Live Tactical Radar Overlay -->
+    <div class="radar-box" id="radar-overlay">
+        <div class="radar-sweep"></div>
     </div>
 
-    <!-- Interface HUD Canvas -->
+    <!-- HUD Overlay -->
     <div class="hud-wrapper">
         <div class="hud-top">
             <div class="search-box">
-                <input type="text" class="search-field" id="target-input" placeholder="ENTER LOCATION (e.g. Abbottabad, Vancouver)...">
+                <input type="text" class="search-field" id="target-input" placeholder="ENTER LOCATION (e.g. Islamabad, Vancouver)...">
                 <button class="action-btn" id="lock-btn">LOCK</button>
             </div>
 
@@ -119,7 +129,7 @@
                 </div>
                 <div class="tele-panel" style="text-align: right;">
                     <div class="tele-title">COORDINATES</div>
-                    <div class="tele-data" id="coord-display">34.14, 73.21</div>
+                    <div class="tele-data" id="coord-display">33.70, 73.06</div>
                 </div>
             </div>
         </div>
@@ -132,88 +142,124 @@
     </div>
 
     <script>
-        // High-Precision Hybrid Engine Initialization (Screenshot 1 & 2 HD Mapping)
-        const map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false,
-            maxZoom: 20
-        }).setView([34.1441, 73.2103], 15);
-
-        // Google Ultra HD Hybrid Tiles (Includes Satellite Imagery + Places, Roads & Restaurants)
-        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-        }).addTo(map);
+        // Leaflet 2D Map Initialization
+        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 20 }).setView([33.70, 73.06], 15);
+        
+        // Clear HD Google Satellite + Places Labels
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
 
         let currentMarker = null;
 
-        // System Clock
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('sys-time').innerText = now.toUTCString().split(' ')[4] + ' UTC';
+            document.getElementById('sys-time').innerText = new Date().toUTCString().split(' ')[4] + ' UTC';
         }, 1000);
 
-        // Dynamic Coordinates Display
         map.on('move', () => {
             const center = map.getCenter();
             document.getElementById('coord-display').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
         });
 
-        // Search & Location Lock
-        function performLock() {
+        // Search Location Logic
+        document.getElementById('lock-btn').addEventListener('click', () => {
             const query = document.getElementById('target-input').value.trim();
             if (!query) return;
-
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
+                .then(r => r.json())
                 .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-
-                        map.flyTo([lat, lon], 17);
-
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
+                        map.flyTo([lat, lon], 16);
                         if (currentMarker) map.removeLayer(currentMarker);
-
-                        const customIcon = L.divIcon({
-                            className: 'pulse-marker',
-                            iconSize: [20, 20],
-                            iconAnchor: [10, 10]
-                        });
-
-                        currentMarker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-                        currentMarker.bindPopup(`<b>SECTOR LOCKED: ${query.toUpperCase()}</b>`).openPopup();
+                        const icon = L.divIcon({ className: 'pulse-marker', iconSize: [20, 20], iconAnchor: [10, 10] });
+                        currentMarker = L.marker([lat, lon], { icon }).addTo(map);
                     }
                 });
+        });
+
+        // ----------------------------------------------------
+        // THREE.JS REAL 3D GLOBE ENGINE (PHOTO-REALISTIC EARTH)
+        // ----------------------------------------------------
+        let scene, camera, renderer, globeMesh;
+        let is3DInitialized = false;
+
+        function init3DGlobe() {
+            const container = document.getElementById('globe-container');
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2.8;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(5, 3, 5);
+            scene.add(sunLight);
+
+            // High-Resolution NASA Satellite Earth Sphere
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+            const textureLoader = new THREE.TextureLoader();
+            
+            // Photo-Realistic Earth Satellite Texture
+            const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+            
+            const material = new THREE.MeshPhongMaterial({
+                map: earthTexture,
+                shininess: 15
+            });
+
+            globeMesh = new THREE.Mesh(geometry, material);
+            scene.add(globeMesh);
+
+            // Auto-Rotation Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+                if (globeMesh) globeMesh.rotation.y += 0.002;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            is3DInitialized = true;
         }
 
-        document.getElementById('lock-btn').addEventListener('click', performLock);
-        document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') performLock(); });
-
-        // Mode Navigation Switches
+        // Mode Switching Mechanics
         document.getElementById('mode-sat').addEventListener('click', () => {
-            document.getElementById('globe-view').style.display = 'none';
+            document.getElementById('globe-container').style.display = 'none';
+            document.getElementById('radar-overlay').style.display = 'none';
             document.getElementById('mode-sat').classList.add('active');
             document.getElementById('mode-globe').classList.remove('active');
         });
 
         document.getElementById('mode-globe').addEventListener('click', () => {
-            document.getElementById('globe-view').style.display = 'flex';
+            document.getElementById('globe-container').style.display = 'block';
+            document.getElementById('radar-overlay').style.display = 'block';
             document.getElementById('mode-globe').classList.add('active');
             document.getElementById('mode-sat').classList.remove('active');
+
+            if (!is3DInitialized) {
+                init3DGlobe();
+            }
         });
 
-        // Invisible Background Telemetry Processors (Weather, Traffic & Earthquakes)
-        function runBackgroundSensors() {
-            // Background Live Earthquake Monitoring
+        window.addEventListener('resize', () => {
+            if (is3DInitialized && camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // Background Telemetry Processor (Earthquake, Weather Engine)
+        setInterval(() => {
             fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
-                .then(r => r.json())
-                .then(data => {
-                    console.log("Background Seismic Scan Active. Events:", data.features.length);
-                }).catch(() => {});
-        }
-        setInterval(runBackgroundSensors, 30000);
-        runBackgroundSensors();
+                .then(r => r.json()).then(d => console.log("[BG ANALYTICS] Seismic Data Sync OK")).catch(() => {});
+        }, 60000);
     </script>
 </body>
 </html>
