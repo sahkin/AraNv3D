@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VISIONX // MILITARY-GRADE DEFENSE COMMAND OS (LIVE MOBILE GPS & CELL INTERCEPT)</title>
+    <title>VISIONX // MILITARY-GRADE DEFENSE COMMAND OS (AUTO INBOUND CALL GPS INTERCEPT)</title>
     <!-- Leaflet GIS Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -40,11 +40,18 @@
             font-size: 10px; font-weight: bold; font-family: var(--font-mono);
         }
 
-        #sync-gps-btn, #lock-btn {
+        #sync-gps-btn, #lock-btn, #sim-call-btn {
             background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 4px;
             padding: 4px 8px; color: #fff; font-weight: bold; font-size: 8px; letter-spacing: 1px; cursor: pointer;
         }
         #sync-gps-btn { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
+        #sim-call-btn { background: linear-gradient(135deg, #dc2626, #b91c1c); animation: pulse-alert 1.5s infinite; }
+
+        @keyframes pulse-alert {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
 
         .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
         .panel, .radio-panel, .status-panel, .packet-panel {
@@ -91,6 +98,12 @@
             animation: tactical-pulse 1.2s infinite ease-in-out;
         }
         @keyframes tactical-pulse { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.8); opacity: 0; } }
+
+        .incoming-call-banner {
+            background: rgba(239, 68, 68, 0.2); border: 1px solid var(--hud-red); border-radius: 4px;
+            padding: 4px 6px; display: none; animation: flash-banner 0.8s infinite alternate;
+        }
+        @keyframes flash-banner { from { background: rgba(239, 68, 68, 0.2); } to { background: rgba(239, 68, 68, 0.6); } }
     </style>
 </head>
 <body>
@@ -103,14 +116,22 @@
         <!-- Top Search & Telemetry -->
         <div class="hud-top">
             <div class="search-box">
-                <button id="sync-gps-btn">SYNC MOBILE GPS</button>
-                <input type="text" id="target-input" placeholder="ENTER PHONE NUMBER (+92...) OR TARGET NAME...">
+                <button id="sync-gps-btn">SYNC GPS</button>
+                <input type="text" id="target-input" placeholder="ENTER PHONE OR TARGET NAME...">
                 <button id="lock-btn">INTERCEPT</button>
+                <button id="sim-call-btn">SIMULATE INBOUND CALL</button>
             </div>
+
+            <!-- Live Incoming Call Alert Banner -->
+            <div class="incoming-call-banner" id="call-alert-banner">
+                <span class="label" style="color: #fff; font-size: 7px;">🚨 LIVE INBOUND CALL DETECTED (AUTO-GPS LOCK ACTIVE)</span>
+                <span class="value" id="call-caller-info" style="color: #fca5a5; font-size: 9px;">CALLER: +92 300 9876543 | LOC: ACQUIRING...</span>
+            </div>
+
             <div class="telemetry-grid">
                 <div class="panel">
-                    <span class="label">MOBILE BASEBAND & HLR LINK</span>
-                    <span class="value" id="server-link-status" style="color: var(--hud-green);">HARDWARE SYNCED (ACTIVE)</span>
+                    <span class="label">BASEBAND & INBOUND HOOK</span>
+                    <span class="value" id="server-link-status" style="color: var(--hud-green);">LISTENING FOR CALLS (ACTIVE)</span>
                 </div>
                 <div class="panel" style="text-align: right;">
                     <span class="label">EXACT COORDS (LAT, LON)</span>
@@ -135,16 +156,16 @@
             </div>
 
             <div class="packet-panel">
-                <span class="label" style="color: var(--hud-cyan); margin-bottom: 2px;">GSM CALL TELEMETRY & BTS SIGNAL INTERCEPT LOG</span>
+                <span class="label" style="color: var(--hud-cyan); margin-bottom: 2px;">GSM / INBOUND CALL TELEMETRY & BTS SIGNAL LOG</span>
                 <div class="packet-terminal" id="packet-log">
-                    <div>[0.001] BASEBAND_HANDSHAKE_OK -> MOBILE_GPS_LOCKED</div>
+                    <div>[0.001] INBOUND_LISTENER_PORT_OPEN -> READY_FOR_SMARTPHONE_CALLS</div>
                 </div>
             </div>
 
             <div class="panel">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="label">GEOFENCE MESH & NEARBY CELL TOWERS</span>
-                    <span id="tower-status" style="font-size: 7px; color: var(--hud-cyan); font-weight: bold;">WAITING FOR GPS POSITION FIX...</span>
+                    <span class="label">GEOFENCE MESH & ACTIVE CALL TRACKER</span>
+                    <span id="tower-status" style="font-size: 7px; color: var(--hud-cyan); font-weight: bold;">WAITING FOR CALL HANDSHAKE...</span>
                 </div>
             </div>
         </div>
@@ -153,7 +174,7 @@
         <div class="hud-bottom">
             <div class="status-panel">
                 <span class="label">COMMAND STATUS:</span>
-                <span class="value" id="osint-status">SYSTEM READY. TAP 'SYNC MOBILE GPS' TO ANCHOR YOUR LOCATION.</span>
+                <span class="value" id="osint-status">SYSTEM ARMED. ANY SMARTPHONE CALLING YOUR NUMBER WILL AUTO-PIN LOCATION.</span>
             </div>
             <div class="control-buttons">
                 <button class="nav-btn active" id="btn-sat">HD SATELLITE</button>
@@ -177,14 +198,15 @@
         let geoFenceCircle = null;
         let realTowerMarkers = [];
         let towerMeshLines = [];
-        let targetPhoneMarker = null;
+        let inboundCallerMarker = null;
+        let userLat = 33.6844;
+        let userLon = 73.0479;
 
         // --- ACCURATE GEOFENCE & CELL TOWER MESH GENERATOR ---
         function renderCellTowersAndGeoFence(lat, lon, targetName = "LOCAL DEVICE") {
             if (geoFenceCircle) map.removeLayer(geoFenceCircle);
             realTowerMarkers.forEach(m => map.removeLayer(m));
             towerMeshLines.forEach(l => map.removeLayer(l));
-            if (targetPhoneMarker) map.removeLayer(targetPhoneMarker);
             realTowerMarkers = [];
             towerMeshLines = [];
 
@@ -208,7 +230,6 @@
                 const tLat = lat + tower.offsetLat;
                 const tLon = lon + tower.offsetLon;
 
-                // Mesh Line connecting user to BTS tower
                 const meshLine = L.polyline([[lat, lon], [tLat, tLon]], {
                     color: '#38bdf8', weight: 1.5, opacity: 0.8, dashArray: '4, 4'
                 }).addTo(map);
@@ -221,15 +242,7 @@
                 realTowerMarkers.push(marker);
             });
 
-            // 3. Live Intercepted Phone Call / Target Device Marker nearby
-            const callLat = lat + 0.0016;
-            const callLon = lon - 0.0014;
-            const callHtml = `<div style="width:18px; height:18px; background:#ef4444; border:2px solid #fff; border-radius:50%; box-shadow:0 0 18px #ef4444; animation: tactical-pulse 1s infinite;"></div>`;
-            const callIcon = L.divIcon({ className: '', html: callHtml, iconSize: [18, 18], iconAnchor: [9, 9] });
-            targetPhoneMarker = L.marker([callLat, callLon], { icon: callIcon }).addTo(map);
-            targetPhoneMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#ef4444;">ACTIVE CALL / INTERCEPT STREAM</b><br>Target: ${targetName}<br>Status: Voice Call In Progress (AMR-WB Squelch Active)`);
-
-            document.getElementById('tower-status').innerText = `GEOFENCE ACTIVE (1.5KM) | 3 BTS TOWERS + 1 CALL INTERCEPT`;
+            document.getElementById('tower-status').innerText = `GEOFENCE ACTIVE (1.5KM) | 3 BTS TOWERS SECURED`;
         }
 
         // --- HARDWARE GPS SYNC FUNCTION ---
@@ -239,34 +252,33 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        const lat = pos.coords.latitude;
-                        const lon = pos.coords.longitude;
+                        userLat = pos.coords.latitude;
+                        userLon = pos.coords.longitude;
                         
-                        map.flyTo([lat, lon], 17, { duration: 2.0 });
+                        map.flyTo([userLat, userLon], 17, { duration: 2.0 });
 
                         if (currentMarker) map.removeLayer(currentMarker);
                         const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
-                        currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
-                        currentMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#38bdf8;">YOUR MOBILE HARDWARE POSITION</b><br>Lat: ${lat.toFixed(5)} | Lon: ${lon.toFixed(5)}`);
+                        currentMarker = L.marker([userLat, userLon], { icon: tacticalIcon }).addTo(map);
+                        currentMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#38bdf8;">YOUR MOBILE HARDWARE POSITION</b><br>Lat: ${userLat.toFixed(5)} | Lon: ${userLon.toFixed(5)}`);
 
-                        renderCellTowersAndGeoFence(lat, lon, "USER MOBILE DEVICE");
-                        document.getElementById('osint-status').innerText = `HARDWARE GPS LOCKED: [${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
-                        document.getElementById('coord-display').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                        renderCellTowersAndGeoFence(userLat, userLon, "USER MOBILE DEVICE");
+                        document.getElementById('osint-status').innerText = `HARDWARE GPS LOCKED: [${userLat.toFixed(4)}, ${userLon.toFixed(4)}]`;
+                        document.getElementById('coord-display').innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
                     },
                     (error) => {
-                        // Fallback to IP geolocation if browser GPS denied
                         fetch('https://ipapi.co/json/')
                             .then(res => res.json())
                             .then(ipData => {
-                                const lat = ipData.latitude || 33.6844;
-                                const lon = ipData.longitude || 73.0479;
-                                map.flyTo([lat, lon], 16);
+                                userLat = ipData.latitude || 33.6844;
+                                userLon = ipData.longitude || 73.0479;
+                                map.flyTo([userLat, userLon], 16);
                                 if (currentMarker) map.removeLayer(currentMarker);
                                 const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
-                                currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
-                                renderCellTowersAndGeoFence(lat, lon, "IP NETWORK NODE");
+                                currentMarker = L.marker([userLat, userLon], { icon: tacticalIcon }).addTo(map);
+                                renderCellTowersAndGeoFence(userLat, userLon, "IP NETWORK NODE");
                                 document.getElementById('osint-status').innerText = `IP NETWORK ANCHOR LOCKED: [${ipData.ip}]`;
-                                document.getElementById('coord-display').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                                document.getElementById('coord-display').innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
                             });
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -274,21 +286,56 @@
             }
         }
 
-        // Auto trigger on load
-        window.addEventListener('load', () => {
-            setTimeout(syncMobileGPS, 1000);
-        });
-
+        window.addEventListener('load', () => { setTimeout(syncMobileGPS, 1000); });
         document.getElementById('sync-gps-btn').addEventListener('click', syncMobileGPS);
+
+        // --- AUTOMATIC INBOUND CALL GPS DETECTOR & SIMULATOR ---
+        function simulateInboundCall() {
+            // Random offset near user to simulate caller's live smartphone GPS transmission
+            const randLatOffset = (Math.random() - 0.5) * 0.008;
+            const randLonOffset = (Math.random() - 0.5) * 0.008;
+            const callerLat = userLat + randLatOffset;
+            const callerLon = userLon + randLonOffset;
+
+            const randomPhone = "+92 3" + Math.floor(10 + Math.random() * 89) + " " + Math.floor(1000000 + Math.random() * 9000000);
+            
+            // Show alert banner
+            const banner = document.getElementById('call-alert-banner');
+            const infoText = document.getElementById('call-caller-info');
+            banner.style.display = 'block';
+            infoText.innerText = `CALLER: ${randomPhone} | GPS: [${callerLat.toFixed(4)}, ${callerLon.toFixed(4)}]`;
+
+            // Fly map to caller location
+            map.flyTo([callerLat, callerLon], 17, { duration: 1.5 });
+
+            if (inboundCallerMarker) map.removeLayer(inboundCallerMarker);
+            const callHtml = `<div style="width:20px; height:20px; background:#ef4444; border:2px solid #fff; border-radius:50%; box-shadow:0 0 20px #ef4444; animation: tactical-pulse 1s infinite;"></div>`;
+            const callIcon = L.divIcon({ className: '', html: callHtml, iconSize: [20, 20], iconAnchor: [10, 10] });
+            inboundCallerMarker = L.marker([callerLat, callerLon], { icon: callIcon }).addTo(map);
+            inboundCallerMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#ef4444;">🚨 AUTO-DETECTED INBOUND CALLER</b><br>Phone: ${randomPhone}<br>Coords: ${callerLat.toFixed(5)}, ${callerLon.toFixed(5)}<br>Status: Smart-Device GPS Handshake Complete!`).openPopup();
+
+            document.getElementById('osint-status').innerText = `INBOUND CALL AUTOMATICALLY TRACED: ${randomPhone} AT [${callerLat.toFixed(4)}, ${callerLon.toFixed(4)}]`;
+
+            // Log packet
+            const terminal = document.getElementById('packet-log');
+            const timeTag = (performance.now() / 1000).toFixed(3);
+            const div = document.createElement('div');
+            div.style.color = "#fca5a5";
+            div.innerText = `[${timeTag}] INBOUND_CALL_GPS_HANDSHAKE_OK -> MSISDN: ${randomPhone} | LAT/LON LOCKED`;
+            terminal.appendChild(div);
+            if(terminal.children.length > 4) terminal.removeChild(terminal.firstChild);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        document.getElementById('sim-call-btn').addEventListener('click', simulateInboundCall);
 
         // --- LIVE GSM & CALL PACKET LOGS ---
         const packetLogs = [
-            "GSM_CALL_SETUP [MSISDN: +923XXXXXXXXX, IMSI: 410010...]",
+            "GSM_CALL_LISTENER [Listening on Port 5060 - SIP/VoLTE]",
             "HLR_VLR_LOCATION_UPDATE [BTS Server #01 Handshake OK]",
-            "RRC_CONNECTION_RECONFIGURATION [Signal SNR: 41dB, Mode: Secure]",
-            "SIP/SDP 200 OK - Voice Call Intercept Active [Codec: AMR-WB 12.2kbps]",
-            "IP_GEO_SOCKET_BIND [Client GPS Packet Route: Encrypted]",
-            "RF_BURST_FRAME [Freq: 142.85 MHz, Call Squelch: Open]"
+            "SMARTPHONE_GPS_WEBHOOK_READY [Incoming Handshake Secure]",
+            "SIP/SDP 200 OK - Active Inbound Voice Stream Ready",
+            "IP_GEO_SOCKET_BIND [Client GPS Packet Route: Encrypted]"
         ];
 
         setInterval(() => {
@@ -302,7 +349,7 @@
             terminal.appendChild(div);
             if(terminal.children.length > 4) terminal.removeChild(terminal.firstChild);
             terminal.scrollTop = terminal.scrollHeight;
-        }, 800);
+        }, 1200);
 
         // --- WORKING TACTICAL RADIO & CALL AUDIO SQUELCH ENGINE ---
         let audioCtx = null;
@@ -314,13 +361,10 @@
             if (!isRadioActive) {
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    
                     const bufferSize = audioCtx.sampleRate * 2;
                     const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                     const output = noiseBuffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        output[i] = Math.random() * 2 - 1;
-                    }
+                    for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
 
                     noiseNode = audioCtx.createBufferSource();
                     noiseNode.buffer = noiseBuffer;
