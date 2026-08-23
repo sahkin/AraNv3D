@@ -3,69 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AEGIS-X CENTURY 3D GLOBE - CORE OS</title>
+    <title>VISIONX CORE OS - BILLION DOLLAR ENGINE</title>
     
-    <!-- Enterprise Grade 3D Spatial Engine (CesiumJS) -->
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <!-- HD 2D Mapping Engine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- 3D Graphics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         :root {
-            --hud-bg: rgba(2, 6, 23, 0.92);
-            --hud-cyan: #38bdf8;
-            --hud-border: rgba(56, 189, 248, 0.4);
+            --bg-dark: #000000;
+            --hud-blue: #0284c7;
+            --hud-border: rgba(56, 189, 248, 0.5);
+            --hud-bg: rgba(3, 7, 18, 0.90);
             --font-mono: 'Courier New', Courier, monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: var(--font-mono); }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); font-family: var(--font-mono); }
+        
+        /* 2D Satellite Viewport */
+        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; display: none; }
 
-        #cesiumContainer { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-
-        /* Hide Default Cesium UI Controls for Clean Futuristic Look */
-        .cesium-viewer-animationContainer, .cesium-viewer-timelineContainer, 
-        .cesium-viewer-bottom, .cesium-navigationHelpButton-wrapper,
-        .cesium-viewer-geocoderContainer { display: none !important; }
-
-        /* Tactical HUD Canvas Layer */
-        .hud-wrapper {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
+        /* 3D WebGL Globe Viewport */
+        #globe-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 2; background: #000; display: block;
         }
 
-        .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 500px; margin: 0 auto; }
-
-        .search-box {
-            background: var(--hud-bg); backdrop-filter: blur(20px);
-            border: 1px solid var(--hud-cyan); border-radius: 6px; padding: 6px 10px;
-            display: flex; gap: 8px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-        }
-
-        .search-field {
-            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 13px; font-weight: bold; font-family: var(--font-mono);
-        }
-
-        .action-btn {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 4px;
-            padding: 6px 16px; color: white; font-weight: bold; font-size: 10px; letter-spacing: 1px; cursor: pointer;
-        }
-
-        .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-
-        .tele-panel {
-            background: var(--hud-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--hud-border); border-radius: 6px; padding: 6px 10px;
-        }
-
-        .tele-title { color: #38bdf8; font-size: 7.5px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-        .tele-data { color: #ffffff; font-size: 11px; font-weight: bold; margin-top: 2px; }
-
-        /* Live Scanning Radar Display */
+        /* Animated Radar Scanner */
         .radar-box {
-            position: absolute; bottom: 80px; right: 20px; width: 90px; height: 90px;
+            position: absolute; bottom: 85px; right: 20px; width: 110px; height: 110px;
             border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.4);
-            background: radial-gradient(circle, rgba(2,6,23,0.3) 0%, rgba(2,6,23,0.9) 80%);
+            background: radial-gradient(circle, rgba(2,6,23,0.3) 0%, rgba(2,6,23,0.8) 80%);
             z-index: 1001; pointer-events: none; overflow: hidden;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
         }
         .radar-sweep {
             width: 100%; height: 100%;
@@ -74,33 +48,77 @@
         }
         @keyframes radar-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .hud-bottom { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 500px; margin: 0 auto; }
+        /* HUD Frame */
+        .hud-wrapper {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 12px;
+        }
+        
+        .hud-top { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
+
+        .search-box {
+            background: var(--hud-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--hud-border); border-radius: 8px; padding: 8px 12px;
+            display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .search-field {
+            flex: 1; background: transparent; border: none; outline: none; color: #38bdf8; font-size: 13px; font-weight: bold; font-family: var(--font-mono);
+        }
+        
+        .action-btn {
+            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 4px;
+            padding: 8px 18px; color: white; font-weight: bold; font-size: 11px; letter-spacing: 1px; cursor: pointer;
+        }
+
+        .telemetry-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+        .tele-panel {
+            background: var(--hud-bg); backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 6px 10px;
+        }
+        
+        .tele-title { color: #38bdf8; font-size: 8px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .tele-data { color: #ffffff; font-size: 12px; font-weight: bold; font-family: var(--font-mono); margin-top: 2px; }
+
+        .hud-bottom { display: flex; gap: 6px; pointer-events: auto; width: 100%; max-width: 520px; margin: 0 auto; }
         .nav-btn {
-            flex: 1; padding: 12px 2px; border-radius: 6px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid var(--hud-border); color: #38bdf8; font-weight: bold; font-size: 8.5px;
+            flex: 1; padding: 14px 2px; border-radius: 6px; background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: bold; font-size: 9px;
             letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; text-align: center;
         }
         .nav-btn.active {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff;
+            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #ffffff; border-color: #38bdf8;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
         }
+
+        /* Marker */
+        .target-marker {
+            width: 20px; height: 20px; background: rgba(56, 189, 248, 0.4);
+            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8;
+            animation: pulse-ring 1.2s infinite ease-in-out;
+        }
+        @keyframes pulse-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <!-- 3D Globe Container -->
-    <div id="cesiumContainer"></div>
+    <!-- 2D HD Map (Hidden Initially) -->
+    <div id="map"></div>
 
-    <!-- Live Tactical Radar -->
-    <div class="radar-box">
+    <!-- 3D Globe -->
+    <div id="globe-container"></div>
+
+    <!-- Tactical Radar -->
+    <div class="radar-box" id="radar">
         <div class="radar-sweep"></div>
     </div>
 
-    <!-- Interface HUD Canvas -->
+    <!-- Interface -->
     <div class="hud-wrapper">
         <div class="hud-top">
             <div class="search-box">
-                <input type="text" class="search-field" id="target-input" placeholder="ENTER LOCATION (e.g. Islamabad, Vancouver)...">
+                <input type="text" class="search-field" id="target-input" placeholder="ENTER LOCATION (e.g. Islamabad)...">
                 <button class="action-btn" id="lock-btn">LOCK</button>
             </div>
 
@@ -110,61 +128,93 @@
                     <div class="tele-data" id="sys-time">00:00:00 UTC</div>
                 </div>
                 <div class="tele-panel" style="text-align: right;">
-                    <div class="tele-title">COORDINATES / ALTITUDE</div>
-                    <div class="tele-data" id="coord-display">33.70, 73.06 | 1000km</div>
+                    <div class="tele-title">COORDINATES</div>
+                    <div class="tele-data" id="coord-display">ORBITAL VIEW</div>
                 </div>
             </div>
         </div>
 
         <div class="hud-bottom">
-            <button class="nav-btn active" id="btn-globe">3D ORBIT</button>
-            <button class="nav-btn" id="btn-street">STREET TARGET</button>
-            <button class="nav-btn" id="btn-grid">MATRIX GRID</button>
+            <button class="nav-btn" id="mode-sat">STREET TARGET</button>
+            <button class="nav-btn active" id="mode-globe">3D ORBIT</button>
+            <button class="nav-btn" id="mode-grid">MATRIX GRID</button>
         </div>
     </div>
 
     <script>
-        // Initialize Cesium 3D Globe Engine
-        const viewer = new Cesium.Viewer('cesiumContainer', {
-            imageryProvider: new Cesium.UrlTemplateImageryProvider({
-                url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', // HD Hybrid Satellite Layer
-                maximumLevel: 20
-            }),
-            baseLayerPicker: false,
-            geocoder: false,
-            homeButton: false,
-            infoBox: false,
-            sceneModePicker: false,
-            selectionIndicator: false,
-            navigationHelpButton: false,
-            animation: false,
-            timeline: false,
-            fullscreenButton: false
-        });
+        // --- 1. THREE.JS 3D GLOBE ENGINE (Fixed Texture Loading) ---
+        const container = document.getElementById('globe-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 2.5;
 
-        // Set Initial Camera View over Global Coordinates
-        viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(73.06, 33.70, 15000000.0) // 3D Planetary Orbit View
-        });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
 
-        // Live Clock Update
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 3, 5);
+        scene.add(directionalLight);
+
+        // Bypass CORS to guarantee earth loads
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.crossOrigin = "Anonymous"; 
+        
+        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const material = new THREE.MeshPhongMaterial({ map: earthTexture });
+        const globeMesh = new THREE.Mesh(geometry, material);
+        scene.add(globeMesh);
+
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+            globeMesh.rotation.y += 0.002; // Smooth rotation
+            renderer.render(scene, camera);
+        }
+        animateGlobe();
+
+        // --- 2. LEAFLET HD SATELLITE ENGINE ---
+        const map = L.map('map', { zoomControl: false, maxZoom: 21 }).setView([33.70, 73.06], 18);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 21 }).addTo(map);
+        let currentMarker = null;
+
+        // --- 3. SYSTEM CLOCK ---
         setInterval(() => {
             document.getElementById('sys-time').innerText = new Date().toUTCString().split(' ')[4] + ' UTC';
         }, 1000);
 
-        // Real-Time Position & Altitude Telemetry
-        viewer.camera.changed.addEventListener(() => {
-            const cartographic = Cesium.Cartographic.fromCartesian(viewer.camera.position);
-            const lat = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
-            const lon = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
-            const alt = (cartographic.height / 1000).toFixed(0);
-            document.getElementById('coord-display').innerText = `${lat}, ${lon} | ${alt}KM`;
+        map.on('move', () => {
+            const center = map.getCenter();
+            document.getElementById('coord-display').innerText = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
         });
 
-        // High Precision Search Lock with Smooth 3D Camera Flight (Orbit -> Street Level Zoom)
-        function executeSearch() {
+        // --- 4. SEAMLESS SEARCH & SWITCH LOGIC ---
+        function switchToMap() {
+            document.getElementById('globe-container').style.display = 'none';
+            document.getElementById('map').style.display = 'block';
+            document.getElementById('mode-sat').classList.add('active');
+            document.getElementById('mode-globe').classList.remove('active');
+            map.invalidateSize(); // Fix map rendering glitch
+        }
+
+        function switchToGlobe() {
+            document.getElementById('map').style.display = 'none';
+            document.getElementById('globe-container').style.display = 'block';
+            document.getElementById('mode-globe').classList.add('active');
+            document.getElementById('mode-sat').classList.remove('active');
+            document.getElementById('coord-display').innerText = "ORBITAL VIEW";
+        }
+
+        document.getElementById('mode-sat').addEventListener('click', switchToMap);
+        document.getElementById('mode-globe').addEventListener('click', switchToGlobe);
+
+        function executeLock() {
             const query = document.getElementById('target-input').value.trim();
             if (!query) return;
+
+            switchToMap(); // Instantly jump from Globe to Map
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(r => r.json())
@@ -173,44 +223,25 @@
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
 
-                        // Smooth 3D Cinematic Fly-To Action down to 800 Meters
-                        viewer.camera.flyTo({
-                            destination: Cesium.Cartesian3.fromDegrees(lon, lat, 800.0),
-                            duration: 3.5,
-                            pitchAdjustHeight: 1000
-                        });
+                        map.flyTo([lat, lon], 18, { duration: 1.5 });
 
-                        // Add Target Marker Point
-                        viewer.entities.removeAll();
-                        viewer.entities.add({
-                            position: Cesium.Cartesian3.fromDegrees(lon, lat),
-                            point: { pixelSize: 12, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.WHITE, outlineWidth: 2 }
-                        });
+                        if (currentMarker) map.removeLayer(currentMarker);
+                        const customIcon = L.divIcon({ className: 'target-marker', iconSize: [20, 20], iconAnchor: [10, 10] });
+                        currentMarker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+                    } else {
+                        alert("SECTOR NOT FOUND IN DATABASE");
                     }
                 });
         }
 
-        document.getElementById('lock-btn').addEventListener('click', executeSearch);
-        document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') executeSearch(); });
+        document.getElementById('lock-btn').addEventListener('click', executeLock);
+        document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') executeLock(); });
 
-        // Navigation Mode Switching
-        document.getElementById('btn-globe').addEventListener('click', () => {
-            const cartographic = Cesium.Cartographic.fromCartesian(viewer.camera.position);
-            viewer.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(
-                    Cesium.Math.toDegrees(cartographic.longitude),
-                    Cesium.Math.toDegrees(cartographic.latitude),
-                    12000000.0
-                ),
-                duration: 2.0
-            });
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        // Silent Background Telemetry Analytics Engine
-        setInterval(() => {
-            fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
-                .then(r => r.json()).then(() => {}).catch(() => {});
-        }, 30000);
     </script>
 </body>
 </html>
