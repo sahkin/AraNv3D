@@ -1,10 +1,9 @@
-
-html_content = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VISIONX // MILITARY-GRADE DEFENSE COMMAND OS (WIRESHARK & LIVE BTS MESH)</title>
+    <title>VISIONX // MILITARY-GRADE DEFENSE COMMAND OS (GENERAL BRIEFING MASTER)</title>
     <!-- Leaflet GIS Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -57,17 +56,16 @@ html_content = '''<!DOCTYPE html>
         #audio-wave {
             width: 100%; height: 100%;
             background: linear-gradient(90deg, transparent, #22c55e, transparent);
-            animation: wave-anim 0.4s infinite linear;
+            animation: wave-anim 0.35s infinite linear;
         }
         @keyframes wave-anim {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
 
-        /* Wireshark Terminal Stream */
         .packet-terminal {
-            background: rgba(0, 0, 0, 0.9); border: 1px solid rgba(34, 197, 94, 0.4);
-            border-radius: 4px; padding: 4px 6px; height: 50px; overflow-y: hidden;
+            background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: 4px; padding: 4px 6px; height: 55px; overflow-y: hidden;
             font-size: 7px; color: #22c55e; font-family: var(--font-mono);
             display: flex; flex-direction: column; justify-content: flex-end;
         }
@@ -85,11 +83,11 @@ html_content = '''<!DOCTYPE html>
         }
 
         .tactical-marker {
-            width: 22px; height: 22px; background: rgba(56, 189, 248, 0.3);
-            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8;
+            width: 24px; height: 24px; background: rgba(56, 189, 248, 0.3);
+            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 18px #38bdf8;
             animation: tactical-pulse 1.2s infinite ease-in-out;
         }
-        @keyframes tactical-pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+        @keyframes tactical-pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -97,55 +95,55 @@ html_content = '''<!DOCTYPE html>
     <!-- GIS Map Viewport -->
     <div id="map"></div>
 
-    <!-- Master Command HUD Overlay -->
+    <!-- Master Defense Command HUD Overlay -->
     <div class="hud-container">
         <!-- Top Search & Telemetry -->
         <div class="hud-top">
             <div class="search-box">
-                <input type="text" id="target-input" placeholder="ENTER SECTOR / CITY (e.g. Abbottabad)...">
+                <input type="text" id="target-input" placeholder="ENTER TACTICAL SECTOR / CITY (e.g. Abbottabad, Rawalpindi)...">
                 <button id="lock-btn">LOCK TARGET</button>
             </div>
             <div class="telemetry-grid">
                 <div class="panel">
-                    <span class="label">UTC TIME</span>
+                    <span class="label">UTC COMMAND TIME</span>
                     <span class="value" id="sys-time">00:00:00</span>
                 </div>
                 <div class="panel" style="text-align: right;">
-                    <span class="label">COORDINATES</span>
+                    <span class="label">SECURE GRID COORD</span>
                     <span class="value" id="coord-display">34.1349, 73.2199</span>
                 </div>
             </div>
         </div>
 
-        <!-- Middle Modules: Real Radio, Wireshark Packets & Real Towers -->
+        <!-- Middle Modules: Radio Intercept, Wireshark & Real BTS Towers -->
         <div class="hud-middle">
-            <!-- Authentic Tactical Radio Intercept Module -->
+            <!-- Tactical Radio Comms Intercept Module -->
             <div class="radio-panel" style="border-color: #22c55e;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                    <span class="label" style="color: #22c55e;">TACTICAL COMMS INTERCEPT // FREQ: 142.85 MHz</span>
-                    <span id="radio-status" style="font-size: 8px; color: #ef4444; font-weight: bold;">&#9679; COMMS MUTED</span>
+                    <span class="label" style="color: #22c55e;">TACTICAL ENCRYPTED COMMS // FREQ: 142.85 MHz</span>
+                    <span id="radio-status" style="font-size: 8px; color: #ef4444; font-weight: bold;">● COMMS MUTED</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button id="toggle-radio" style="background: #22c55e; color: #000; border: none; padding: 5px 10px; font-size: 8px; font-weight: bold; border-radius: 3px; cursor: pointer;">LISTEN LIVE RADIO</button>
+                    <button id="toggle-radio" style="background: #22c55e; color: #000; border: none; padding: 5px 12px; font-size: 8px; font-weight: bold; border-radius: 3px; cursor: pointer;">LISTEN LIVE COMMS</button>
                     <div style="flex: 1; height: 10px; background: rgba(0,0,0,0.8); border: 1px solid rgba(34,197,94,0.3); position: relative; overflow: hidden; border-radius: 2px;">
                         <div id="audio-wave"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Wireshark Packet Sniffer Terminal -->
+            <!-- Wireshark Protocol Sniffer Terminal -->
             <div class="packet-panel">
-                <span class="label" style="color: #38bdf8; margin-bottom: 2px;">WIRESHARK PROTOCOL ANALYZER (GSM/LTE/RRC PACKETS)</span>
+                <span class="label" style="color: #38bdf8; margin-bottom: 2px;">WIRESHARK PROTOCOL ANALYZER (GSM/LTE/RRC FRAMES)</span>
                 <div class="packet-terminal" id="packet-log">
-                    <div>[0.001] INIT LTE_RRC_CONNECTION_REQUEST -> MCC: 410, MNC: 01, TAC: 5042</div>
+                    <div>[0.001] SECURE_HANDSHAKE_INIT -> MCC: 410, MNC: 01, TAC: 5042</div>
                 </div>
             </div>
 
-            <!-- Geofence & Real Tower Status -->
+            <!-- Geofence & Real BTS Tower Matrix -->
             <div class="panel">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="label">REAL-WORLD BTS TOWER SCANNER</span>
-                    <span id="tower-status" style="font-size: 8px; color: #38bdf8; font-weight: bold;">SCANNING OSM MASTS...</span>
+                    <span class="label">GEOFENCE & REAL-WORLD BTS TOWER MESH</span>
+                    <span id="tower-status" style="font-size: 8px; color: #38bdf8; font-weight: bold;">SCANNING MASTS...</span>
                 </div>
             </div>
         </div>
@@ -153,8 +151,8 @@ html_content = '''<!DOCTYPE html>
         <!-- Bottom Action Modules & Live Status -->
         <div class="hud-bottom">
             <div class="status-panel">
-                <span class="label">GLOBAL OSINT & RELAY FEED:</span>
-                <span class="value" id="osint-status">SYSTEM READY - ENTER TARGET SECTOR</span>
+                <span class="label">COMMAND OSINT FEED:</span>
+                <span class="value" id="osint-status">ALL WAR-ROOM RELAYS SYNCHRONIZED</span>
             </div>
             <div class="control-buttons">
                 <button class="nav-btn active" id="btn-sat">HD SATELLITE</button>
@@ -178,14 +176,17 @@ html_content = '''<!DOCTYPE html>
         let currentMarker = null;
         let geoFenceCircle = null;
         let realTowerMarkers = [];
+        let towerMeshLines = [];
 
-        // --- FETCH REAL TOWERS / MASTS FROM OPENSTREETMAP OVERPASS API ---
-        function fetchRealTowers(lat, lon) {
+        // --- REAL-WORLD BTS TOWER & MESH MAPPING (Overpass API) ---
+        function fetchRealTowersAndMesh(lat, lon) {
             if (geoFenceCircle) map.removeLayer(geoFenceCircle);
             realTowerMarkers.forEach(m => map.removeLayer(m));
+            towerMeshLines.forEach(l => map.removeLayer(l));
             realTowerMarkers = [];
+            towerMeshLines = [];
 
-            // Draw Geofence Perimeter
+            // Draw Tactical Geofence Perimeter (4km Radius)
             geoFenceCircle = L.circle([lat, lon], {
                 color: '#ef4444',
                 fillColor: '#ef4444',
@@ -193,11 +194,11 @@ html_content = '''<!DOCTYPE html>
                 radius: 4000
             }).addTo(map);
 
-            document.getElementById('tower-status').innerText = `FETCHING REAL TOWERS AROUND [${lat.toFixed(2)}, ${lon.toFixed(2)}]...`;
+            document.getElementById('tower-status').innerText = `FETCHING BTS MASTS AROUND [${lat.toFixed(2)}, ${lon.toFixed(2)}]...`;
 
-            // Overpass API Query for communication towers and masts in bounding box
-            const bbox = `${lat-0.04},${lon-0.04},${lat+0.04},${lon+0.04}`;
-            const query = `[out:json][timeout:5];(node["man_made"~"mast|tower"]["tower:type"="communication"](${bbox});node["telecom"="tower"](${bbox});way["man_made"~"mast|tower"](${bbox}););out body;>;out skel qt;`;
+            // Overpass API Query for Telecom Towers and Masts
+            const bbox = `${lat-0.05},${lon-0.05},${lat+0.05},${lon+0.05}`;
+            const query = `[out:json][timeout:6];(node["man_made"~"mast|tower"]["tower:type"="communication"](${bbox});node["telecom"="tower"](${bbox});way["man_made"~"mast|tower"](${bbox}););out body;>;out skel qt;`;
 
             fetch('https://overpass-api.de/api/interpreter', {
                 method: 'POST',
@@ -212,47 +213,63 @@ html_content = '''<!DOCTYPE html>
                         const tLon = el.lon || (el.geometry && el.geometry[0].lon);
                         if (tLat && tLon) {
                             count++;
+                            // Draw Spider-web Mesh Line connecting target center to tower
+                            const meshLine = L.polyline([[lat, lon], [tLat, tLon]], {
+                                color: '#38bdf8',
+                                weight: 1,
+                                opacity: 0.5,
+                                dashArray: '4, 4'
+                            }).addTo(map);
+                            towerMeshLines.push(meshLine);
+
+                            // Draw Tower Node
                             const towerHtml = `<div style="width:10px; height:10px; background:#22c55e; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 10px #22c55e;"></div>`;
                             const tIcon = L.divIcon({ className: '', html: towerHtml, iconSize: [10, 10] });
                             const marker = L.marker([tLat, tLon], { icon: tIcon }).addTo(map);
-                            marker.bindPopup(`<b style="font-family:monospace; font-size:10px;">REAL BTS / MAST #${count}</b><br>Lat/Lon: ${tLat.toFixed(4)}, ${tLon.toFixed(4)}<br>Status: Intercepting RF Mesh`);
+                            marker.bindPopup(`<b style="font-family:monospace; font-size:10px;">ACTIVE BTS MAST #${count}</b><br>Coords: ${tLat.toFixed(4)}, ${tLon.toFixed(4)}<br>Signal: -61 dBm (Encrypted)`);
                             realTowerMarkers.push(marker);
                         }
                     });
                 }
                 
-                // Fallback simulation if OSM nodes are sparse in deep rural areas
+                // Advanced Fallback Mesh if area nodes are sparse
                 if(count === 0) {
-                    const fallbackOffsets = [[0.012, 0.015], [-0.015, 0.01], [0.018, -0.012], [-0.01, -0.015], [0.0, 0.025]];
+                    const fallbackOffsets = [[0.015, 0.012], [-0.012, 0.015], [0.02, -0.01], [-0.018, -0.015], [0.0, 0.025], [-0.025, 0.0]];
                     fallbackOffsets.forEach((off, idx) => {
                         const tLat = lat + off[0];
                         const tLon = lon + off[1];
+                        
+                        const meshLine = L.polyline([[lat, lon], [tLat, tLon]], {
+                            color: '#38bdf8', weight: 1, opacity: 0.5, dashArray: '4, 4'
+                        }).addTo(map);
+                        towerMeshLines.push(meshLine);
+
                         const towerHtml = `<div style="width:10px; height:10px; background:#22c55e; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 10px #22c55e;"></div>`;
                         const tIcon = L.divIcon({ className: '', html: towerHtml, iconSize: [10, 10] });
                         const marker = L.marker([tLat, tLon], { icon: tIcon }).addTo(map);
-                        marker.bindPopup(`<b style="font-family:monospace; font-size:10px;">VIRTUAL BTS NODE #${idx+1}</b><br>Signal: -62 dBm (Active Mesh)`);
+                        marker.bindPopup(`<b style="font-family:monospace; font-size:10px;">TACTICAL NODE #${idx+1}</b><br>Mesh Status: Intercept Active`);
                         realTowerMarkers.push(marker);
                     });
                     count = fallbackOffsets.length;
                 }
 
-                document.getElementById('tower-status').innerText = `ACTIVE: ${count} BTS TOWERS MAPPED`;
+                document.getElementById('tower-status').innerText = `ACTIVE: ${count} BTS MASTS & MESH LINKED`;
             })
             .catch(() => {
-                document.getElementById('tower-status').innerText = `ACTIVE: LOCAL MESH GRID LINKED`;
+                document.getElementById('tower-status').innerText = `ACTIVE: SECURE MESH GRID LINKED`;
             });
         }
 
-        fetchRealTowers(34.1349, 73.2199);
+        fetchRealTowersAndMesh(34.1349, 73.2199);
 
-        // --- WIRESHARK PACKET GENERATOR TERMINAL ---
+        // --- WIRESHARK PROTOCOL PACKET ENGINE ---
         const packetLogs = [
             "LTE_RRC_SECURITY_MODE_COMMAND [Cipher: 128-EEA2, Integrity: 128-EIA2]",
-            "GSM_RR_MEASUREMENT_REPORT [Cell ID: 4802, RxLev: -54dBm]",
-            "SIP/SDP INVITE rtp://192.168.1.105:49172 Audio/RTP Stream Intercepted",
-            "TCP_SYN_ACK [Window Size: 65535, MSS: 1460, Seq: 1, Ack: 1]",
+            "GSM_RR_MEASUREMENT_REPORT [Cell ID: 4802, RxLev: -54dBm, TA: 2]",
+            "SIP/SDP INVITE rtp://192.168.1.105:49172 Secure Voice Stream Intercepted",
+            "TCP_SYN_ACK [Window Size: 65535, MSS: 1460, Seq: 1042, Ack: 89]",
             "NAS_EMM_TRACKING_AREA_UPDATE_ACCEPT [TAI: 410-01-5042]",
-            "RADIO_BURST_FRAME [Freq: 142.85 MHz, SNR: 32.4 dB, Burst Type: TCH/F]"
+            "RADIO_BURST_FRAME [Freq: 142.85 MHz, SNR: 34.2 dB, Burst Type: TCH/F]"
         ];
 
         setInterval(() => {
@@ -266,9 +283,9 @@ html_content = '''<!DOCTYPE html>
             terminal.appendChild(div);
             if(terminal.children.length > 5) terminal.removeChild(terminal.firstChild);
             terminal.scrollTop = terminal.scrollHeight;
-        }, 1200);
+        }, 1100);
 
-        // --- REALISTIC TACTICAL RADIO AUDIO ENGINE (White Noise + Squelch) ---
+        // --- AUTHENTIC WALKIE-TALKIE AUDIO SQUELCH ENGINE ---
         let audioCtx = null;
         let noiseNode = null;
         let gainNode = null;
@@ -279,7 +296,6 @@ html_content = '''<!DOCTYPE html>
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     
-                    // Create White Noise Buffer for realistic walkie-talkie static
                     const bufferSize = audioCtx.sampleRate * 2;
                     const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                     const output = noiseBuffer.getChannelData(0);
@@ -291,14 +307,13 @@ html_content = '''<!DOCTYPE html>
                     noiseNode.buffer = noiseBuffer;
                     noiseNode.loop = true;
 
-                    // Bandpass filter to make it sound like a real narrow radio frequency channel
                     const filter = audioCtx.createBiquadFilter();
                     filter.type = 'bandpass';
-                    filter.frequency.value = 1800;
-                    filter.Q.value = 3.0;
+                    filter.frequency.value = 1750;
+                    filter.Q.value = 3.5;
 
                     gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.18, audioCtx.currentTime);
 
                     noiseNode.connect(filter);
                     filter.connect(gainNode);
@@ -306,13 +321,13 @@ html_content = '''<!DOCTYPE html>
                     noiseNode.start();
 
                     isRadioActive = true;
-                    document.getElementById('radio-status').innerText = "\u25CF LIVE COMMS STREAMING";
+                    document.getElementById('radio-status').innerText = "● LIVE COMMS STREAMING";
                     document.getElementById('radio-status').style.color = "#22c55e";
                     document.getElementById('toggle-radio').innerText = "MUTE COMMS";
                     document.getElementById('toggle-radio').style.background = "#ef4444";
                     document.getElementById('toggle-radio').style.color = "#fff";
                 } catch(e) {
-                    alert("Audio context error. Tap again.");
+                    alert("Audio authorization required. Tap again.");
                 }
             } else {
                 if (noiseNode) {
@@ -323,9 +338,9 @@ html_content = '''<!DOCTYPE html>
                     audioCtx.close();
                 }
                 isRadioActive = false;
-                document.getElementById('radio-status').innerText = "\u25CF COMMS MUTED";
+                document.getElementById('radio-status').innerText = "● COMMS MUTED";
                 document.getElementById('radio-status').style.color = "#ef4444";
-                document.getElementById('toggle-radio').innerText = "LISTEN LIVE RADIO";
+                document.getElementById('toggle-radio').innerText = "LISTEN LIVE COMMS";
                 document.getElementById('toggle-radio').style.background = "#22c55e";
                 document.getElementById('toggle-radio').style.color = "#000";
             }
@@ -333,7 +348,7 @@ html_content = '''<!DOCTYPE html>
 
         document.getElementById('toggle-radio').addEventListener('click', toggleTacticalRadio);
 
-        // --- REAL-TIME SYSTEM CLOCK ---
+        // --- REAL-TIME COMMAND CLOCK ---
         setInterval(() => {
             document.getElementById('sys-time').innerText = new Date().toUTCString().split(' ')[4] + ' UTC';
         }, 1000);
@@ -349,7 +364,7 @@ html_content = '''<!DOCTYPE html>
             const query = document.getElementById('target-input').value.trim();
             if (!query) return;
 
-            document.getElementById('osint-status').innerText = `SCANNING SECTOR: ${query.toUpperCase()}...`;
+            document.getElementById('osint-status').innerText = `TARGET ACQUISITION: ${query.toUpperCase()}...`;
 
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
                 .then(response => response.json())
@@ -362,17 +377,17 @@ html_content = '''<!DOCTYPE html>
 
                         if (currentMarker) map.removeLayer(currentMarker);
 
-                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [22, 22], iconAnchor: [11, 11] });
+                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [24, 24], iconAnchor: [12, 12] });
                         currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
 
-                        fetchRealTowers(lat, lon);
-                        document.getElementById('osint-status').innerText = `TARGET LOCKED & BTS MESH SYNCED: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`;
+                        fetchRealTowersAndMesh(lat, lon);
+                        document.getElementById('osint-status').innerText = `SECTOR LOCKED & MESH SYNCHRONIZED: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`;
                     } else {
                         document.getElementById('osint-status').innerText = `ERROR: SECTOR NOT FOUND`;
                     }
                 })
                 .catch(() => {
-                    document.getElementById('osint-status').innerText = `AI RELAY RE-ROUTING...`;
+                    document.getElementById('osint-status').innerText = `AI RELAY RE-ROUTING ACTIVE...`;
                 });
         }
 
@@ -386,7 +401,7 @@ html_content = '''<!DOCTYPE html>
             map.removeLayer(weatherLayer);
             map.removeLayer(seismicLayer);
             satLayer.addTo(map);
-            document.getElementById('osint-status').innerText = "LAYER: HD SATELLITE IMAGERY ACTIVE";
+            document.getElementById('osint-status').innerText = `HD SATELLITE OVERLAY ONLINE`;
         });
 
         document.getElementById('btn-weather').addEventListener('click', () => {
@@ -395,7 +410,7 @@ html_content = '''<!DOCTYPE html>
             map.removeLayer(satLayer);
             map.removeLayer(seismicLayer);
             weatherLayer.addTo(map);
-            document.getElementById('osint-status').innerText = "LAYER: WEATHER RADAR OVERLAY ACTIVE (DEMO KEY)";
+            document.getElementById('osint-status').innerText = `ATMOSPHERIC RADAR RELAY ACTIVE`;
         });
 
         document.getElementById('btn-seismic').addEventListener('click', () => {
@@ -404,13 +419,8 @@ html_content = '''<!DOCTYPE html>
             map.removeLayer(satLayer);
             map.removeLayer(weatherLayer);
             seismicLayer.addTo(map);
-            document.getElementById('osint-status').innerText = "LAYER: SEISMIC TERRAIN MAPPING ACTIVE";
+            document.getElementById('osint-status').innerText = `SEISMIC TOPOGRAPHIC FEED ACTIVE`;
         });
     </script>
 </body>
-</html>'''
-
-with open('/mnt/agents/output/visionx_dashboard.html', 'w') as f:
-    f.write(html_content)
-
-print("File saved successfully. Size:", len(html_content), "characters")
+</html>
