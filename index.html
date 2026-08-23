@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+html_content = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -122,7 +123,7 @@
             <div class="radio-panel" style="border-color: #22c55e;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                     <span class="label" style="color: #22c55e;">TACTICAL COMMS INTERCEPT // FREQ: 142.85 MHz</span>
-                    <span id="radio-status" style="font-size: 8px; color: #ef4444; font-weight: bold;">● COMMS MUTED</span>
+                    <span id="radio-status" style="font-size: 8px; color: #ef4444; font-weight: bold;">&#9679; COMMS MUTED</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button id="toggle-radio" style="background: #22c55e; color: #000; border: none; padding: 5px 10px; font-size: 8px; font-weight: bold; border-radius: 3px; cursor: pointer;">LISTEN LIVE RADIO</button>
@@ -305,7 +306,7 @@
                     noiseNode.start();
 
                     isRadioActive = true;
-                    document.getElementById('radio-status').innerText = "● LIVE COMMS STREAMING";
+                    document.getElementById('radio-status').innerText = "\u25CF LIVE COMMS STREAMING";
                     document.getElementById('radio-status').style.color = "#22c55e";
                     document.getElementById('toggle-radio').innerText = "MUTE COMMS";
                     document.getElementById('toggle-radio').style.background = "#ef4444";
@@ -322,7 +323,7 @@
                     audioCtx.close();
                 }
                 isRadioActive = false;
-                document.getElementById('radio-status').innerText = "● COMMS MUTED";
+                document.getElementById('radio-status').innerText = "\u25CF COMMS MUTED";
                 document.getElementById('radio-status').style.color = "#ef4444";
                 document.getElementById('toggle-radio').innerText = "LISTEN LIVE RADIO";
                 document.getElementById('toggle-radio').style.background = "#22c55e";
@@ -385,7 +386,7 @@
             map.removeLayer(weatherLayer);
             map.removeLayer(seismicLayer);
             satLayer.addTo(map);
-            document.getElementById('osint-status').innerText = `HD SATELLITE OVERLAY ONLINE`;
+            document.getElementById('osint-status').innerText = "LAYER: HD SATELLITE IMAGERY ACTIVE";
         });
 
         document.getElementById('btn-weather').addEventListener('click', () => {
@@ -394,7 +395,7 @@
             map.removeLayer(satLayer);
             map.removeLayer(seismicLayer);
             weatherLayer.addTo(map);
-            document.getElementById('osint-status').innerText = `ATMOSPHERIC RADAR RELAY ACTIVE`;
+            document.getElementById('osint-status').innerText = "LAYER: WEATHER RADAR OVERLAY ACTIVE (DEMO KEY)";
         });
 
         document.getElementById('btn-seismic').addEventListener('click', () => {
@@ -403,8 +404,13 @@
             map.removeLayer(satLayer);
             map.removeLayer(weatherLayer);
             seismicLayer.addTo(map);
-            document.getElementById('osint-status').innerText = `SEISMIC TOPOGRAPHIC FEED ACTIVE`;
+            document.getElementById('osint-status').innerText = "LAYER: SEISMIC TERRAIN MAPPING ACTIVE";
         });
     </script>
 </body>
-</html>
+</html>'''
+
+with open('/mnt/agents/output/visionx_dashboard.html', 'w') as f:
+    f.write(html_content)
+
+print("File saved successfully. Size:", len(html_content), "characters")
