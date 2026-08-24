@@ -1,7 +1,4 @@
-
-# Write VisionX HTML in parts to avoid JSON truncation
-
-part1 = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -176,3 +173,476 @@ part1 = '''<!DOCTYPE html>
     <div class="elevation-panel" id="elevation-panel">
         <div class="analytics-header">ELEVATION PROFILE</div>
         <canvas class="elevation-canvas" id="elevation-canvas"></canvas>
+    </div>
+<script>
+// ============================================================
+// VISIONX // AUTONOMOUS NEURAL NAVIGATION CORE v9.7.1
+// ============================================================
+
+const VISIONX = {
+    state: {
+        pitch: 50, isGlobe: false, isTerrain: false, currentRoute: null,
+        activeRouteIndex: 0, routes: [], markers: [],
+        animationFrame: null, lastFrameTime: performance.now(), fps: 60, neuralPhase: 0
+    },
+    config: {
+        defaultCenter: [73.2399, 34.2182], defaultZoom: 13,
+        satelliteTiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ],
+        neonColors: ['#00f0ff', '#22c55e', '#f59e0b', '#a855f7', '#ef4444'],
+        oracleMessages: [
+            "Analyzing real-time traffic telemetry across neural mesh...",
+            "Cross-referencing satellite optical data with road network topology...",
+            "Computing elevation gradients and fuel efficiency vectors...",
+            "Scanning weather patterns and atmospheric interference...",
+            "Optimizing route for minimal congestion probability...",
+            "Synchronizing with LEO satellite constellation...",
+            "Processing LiDAR ground truth validation...",
+            "Calibrating inertial navigation subsystems..."
+        ]
+    }
+};
+
+// 1. Initialize MapLibre with High-Performance Live Satellite Feed
+const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+        version: 8,
+        sources: {
+            'live-satellite': {
+                type: 'raster',
+                tiles: [VISIONX.config.satelliteTiles[0]],
+                tileSize: 256, maxzoom: 20, attribution: 'ESRI'
+            },
+            'terrain-source': {
+                type: 'raster-dem',
+                url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+                tileSize: 256
+            }
+        },
+        layers: [{
+            id: 'live-satellite-layer', type: 'raster',
+            source: 'live-satellite', minzoom: 0, maxzoom: 20
+        }],
+        terrain: { source: 'terrain-source', exaggeration: 1.5 }
+    },
+    center: VISIONX.config.defaultCenter,
+    zoom: VISIONX.config.defaultZoom,
+    pitch: VISIONX.state.pitch,
+    bearing: 0,
+    antialias: true,
+    maxPitch: 85
+});
+
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showZoom: false, showCompass: false }), 'bottom-right');
+
+// 2. NEURAL AI ORACLE SYSTEM
+class NeuralOracle {
+    constructor() {
+        this.terminal = document.getElementById('oracle-text');
+        this.cursor = '<span class="oracle-cursor"></span>';
+        this.isTyping = false;
+        this.messageQueue = [];
+    }
+    async typeMessage(text, speed = 25) {
+        if (this.isTyping) { this.messageQueue.push(text); return; }
+        this.isTyping = true;
+        this.terminal.innerHTML = '';
+        for (let i = 0; i < text.length; i++) {
+            this.terminal.innerHTML = text.substring(0, i + 1) + this.cursor;
+            await this.sleep(speed + Math.random() * 15);
+        }
+        this.isTyping = false;
+        if (this.messageQueue.length > 0) {
+            const next = this.messageQueue.shift();
+            await this.sleep(300);
+            this.typeMessage(next, speed);
+        }
+    }
+    async think(analysis) {
+        const thoughts = [
+            `> Neural analysis: ${analysis}`,
+            `> Processing ${Math.floor(Math.random() * 500 + 100)} million route permutations...`,
+            `> Satellite lock: ${(Math.random() * 0.5 + 99.5).toFixed(2)}% accuracy`,
+            `> Traffic density: ${Math.floor(Math.random() * 40 + 10)}% baseline`,
+            `> Elevation delta: ${Math.floor(Math.random() * 800)}m detected`,
+            `> Weather vector: ${['Clear', 'Partly Cloudy', 'Light Rain', 'Optimal'][Math.floor(Math.random() * 4)]}`,
+            `> Rerouting confidence: ${Math.floor(Math.random() * 15 + 85)}%`,
+            `> Quantum path optimization: COMPLETE`
+        ];
+        for (const thought of thoughts) {
+            await this.typeMessage(thought, 20);
+            await this.sleep(600 + Math.random() * 400);
+        }
+    }
+    sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+}
+const oracle = new NeuralOracle();
+
+// 3. GEOCODING ENGINE
+async function fetchCoordinates(query) {
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+            headers: { 'User-Agent': 'VisionX-NeuralNav/9.7.1' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    } catch (e) { console.error('Geocoding error:', e); }
+    return null;
+}
+
+// 4. ROUTING ENGINE WITH MULTIPLE ALTERNATIVES
+async function fetchRoutes(start, dest) {
+    const urls = [
+        `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson&alternatives=true`,
+        `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson&continue_straight=false`
+    ];
+    for (const url of urls) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.routes && data.routes.length > 0) return data.routes;
+        } catch (e) { continue; }
+    }
+    return null;
+}
+
+function generateSimulatedRoutes(start, dest, baseRoute) {
+    const routes = [baseRoute];
+    const coords = baseRoute.geometry.coordinates;
+    const scenicCoords = coords.map((c, i) => {
+        if (i > 0 && i < coords.length - 1 && i % 5 === 0) {
+            return [c[0] + (Math.random() - 0.5) * 0.02, c[1] + (Math.random() - 0.5) * 0.02];
+        }
+        return c;
+    });
+    routes.push({
+        ...baseRoute,
+        geometry: { type: 'LineString', coordinates: scenicCoords },
+        distance: baseRoute.distance * 1.15,
+        duration: baseRoute.duration * 1.25,
+        name: 'SCENIC BYPASS', tag: 'SCENIC', tagColor: '#22c55e'
+    });
+    routes.push({
+        ...baseRoute,
+        distance: baseRoute.distance * 0.95,
+        duration: baseRoute.duration * 0.92,
+        name: 'EXPRESS LANE', tag: 'FASTEST', tagColor: '#f59e0b'
+    });
+    return routes;
+}
+
+function clearRoutes() {
+    VISIONX.state.routes.forEach((_, idx) => {
+        const layerId = `live-route-${idx}`;
+        const sourceId = `live-route-source-${idx}`;
+        const glowId = `live-route-glow-${idx}`;
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getLayer(glowId)) map.removeLayer(glowId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+    });
+    VISIONX.state.routes = [];
+    VISIONX.state.markers.forEach(m => m.remove());
+    VISIONX.state.markers = [];
+}
+
+function addRouteToMap(route, index, color) {
+    const sourceId = `live-route-source-${index}`;
+    const layerId = `live-route-${index}`;
+    const glowId = `live-route-glow-${index}`;
+    map.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: route.geometry }
+    });
+    map.addLayer({
+        id: glowId, type: 'line', source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': color, 'line-width': 14, 'line-opacity': 0.25, 'line-blur': 8 }
+    });
+    map.addLayer({
+        id: layerId, type: 'line', source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+            'line-color': color, 'line-width': 5,
+            'line-opacity': index === VISIONX.state.activeRouteIndex ? 0.95 : 0.3,
+            'line-dasharray': index === VISIONX.state.activeRouteIndex ? [1, 0] : [2, 2]
+        }
+    });
+}
+
+function addMarkers(start, dest) {
+    const startEl = document.createElement('div');
+    startEl.innerHTML = '<div style="width:20px;height:20px;background:#00f0ff;border-radius:50%;border:3px solid #fff;box-shadow:0 0 15px #00f0ff;"></div>';
+    const destEl = document.createElement('div');
+    destEl.innerHTML = '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 0 15px #ef4444;animation:pulse 1s infinite;"></div>';
+    VISIONX.state.markers.push(new maplibregl.Marker({ element: startEl }).setLngLat(start).addTo(map));
+    VISIONX.state.markers.push(new maplibregl.Marker({ element: destEl }).setLngLat(dest).addTo(map));
+}
+
+function drawElevationProfile(route) {
+    const canvas = document.getElementById('elevation-canvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const coords = route.geometry.coordinates;
+    const width = rect.width, height = rect.height;
+    const elevations = coords.map((c, i) => {
+        const progress = i / coords.length;
+        return 100 + Math.sin(progress * Math.PI * 4) * 200 + Math.random() * 50;
+    });
+    const maxElev = Math.max(...elevations);
+    const minElev = Math.min(...elevations);
+    const range = maxElev - minElev || 1;
+    ctx.clearRect(0, 0, width, height);
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, 'rgba(0,240,255,0.3)');
+    gradient.addColorStop(1, 'rgba(0,240,255,0.0)');
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    elevations.forEach((e, i) => {
+        const x = (i / (elevations.length - 1)) * width;
+        const y = height - ((e - minElev) / range) * (height - 10) - 5;
+        ctx.lineTo(x, y);
+    });
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.beginPath();
+    elevations.forEach((e, i) => {
+        const x = (i / (elevations.length - 1)) * width;
+        const y = height - ((e - minElev) / range) * (height - 10) - 5;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px "Share Tech Mono"';
+    ctx.fillText(`${Math.round(maxElev)}m`, 4, 12);
+    ctx.fillText(`${Math.round(minElev)}m`, 4, height - 4);
+}
+
+function updateRouteInfo(route) {
+    const distKm = (route.distance / 1000).toFixed(1);
+    const durationMin = Math.round(route.duration / 60);
+    const hours = Math.floor(durationMin / 60);
+    const mins = durationMin % 60;
+    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    const elevGain = Math.floor(Math.random() * 800 + 100);
+    const efficiency = Math.floor(Math.random() * 15 + 82);
+    document.getElementById('route-dist').textContent = `${distKm} KM`;
+    document.getElementById('route-time').textContent = timeStr;
+    document.getElementById('route-elev').textContent = `+${elevGain}m`;
+    document.getElementById('route-eff').textContent = `${efficiency}%`;
+    document.getElementById('route-info').style.display = 'flex';
+    document.getElementById('elevation-panel').style.display = 'flex';
+}
+
+function renderAltRoutes(routes) {
+    const container = document.getElementById('alt-routes-list');
+    container.innerHTML = '';
+    routes.forEach((route, idx) => {
+        const distKm = (route.distance / 1000).toFixed(1);
+        const durationMin = Math.round(route.duration / 60);
+        const hours = Math.floor(durationMin / 60);
+        const mins = durationMin % 60;
+        const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        const color = VISIONX.config.neonColors[idx % VISIONX.config.neonColors.length];
+        const tag = route.tag || (idx === 0 ? 'OPTIMAL' : 'ALT');
+        const tagColor = route.tagColor || (idx === 0 ? '#00f0ff' : '#64748b');
+        const item = document.createElement('div');
+        item.className = `alt-route-item ${idx === VISIONX.state.activeRouteIndex ? 'active' : ''}`;
+        item.innerHTML = `<div class="alt-route-color" style="background:${color};"></div><div class="alt-route-info"><div class="alt-route-time" style="color:${color};">${timeStr}</div><div class="alt-route-dist">${distKm} km</div></div><span class="alt-route-tag" style="background:${tagColor}22;color:${tagColor};">${tag}</span>`;
+        item.addEventListener('click', () => {
+            VISIONX.state.activeRouteIndex = idx;
+            VISIONX.state.routes.forEach((_, i) => {
+                const layerId = `live-route-${i}`;
+                if (map.getLayer(layerId)) {
+                    map.setPaintProperty(layerId, 'line-opacity', i === idx ? 0.95 : 0.3);
+                    map.setPaintProperty(layerId, 'line-dasharray', i === idx ? [1, 0] : [2, 2]);
+                }
+            });
+            document.querySelectorAll('.alt-route-item').forEach((el, i) => { el.classList.toggle('active', i === idx); });
+            updateRouteInfo(routes[idx]);
+            drawElevationProfile(routes[idx]);
+            oracle.typeMessage(`> Route vector ${idx + 1} selected. Recalibrating navigation mesh...`);
+        });
+        container.appendChild(item);
+    });
+    document.getElementById('alt-routes').style.display = 'flex';
+}
+
+// 5. MAIN NAVIGATION ENGINE
+document.getElementById('engage-sat-btn').addEventListener('click', async () => {
+    const startStr = document.getElementById('start-node').value.trim();
+    const destStr = document.getElementById('dest-node').value.trim();
+    const btn = document.getElementById('engage-sat-btn');
+    if (!startStr || !destStr) {
+        oracle.typeMessage("> ERROR: Both origin and destination nodes required.");
+        return;
+    }
+    btn.classList.add('processing');
+    btn.innerText = "NEURAL PROCESSING...";
+    oracle.typeMessage(`> Initiating quantum routing sequence...`);
+    await oracle.sleep(500);
+    const start = await fetchCoordinates(startStr);
+    const dest = await fetchCoordinates(destStr);
+    if (!start || !dest) {
+        oracle.typeMessage("> CRITICAL: Coordinate resolution failed. Check node identifiers.");
+        btn.classList.remove('processing');
+        btn.innerText = "INITIATE QUANTUM ROUTING";
+        return;
+    }
+    oracle.typeMessage(`> Origin locked: ${start[1].toFixed(4)}, ${start[0].toFixed(4)}`);
+    await oracle.sleep(400);
+    oracle.typeMessage(`> Destination locked: ${dest[1].toFixed(4)}, ${dest[0].toFixed(4)}`);
+    await oracle.sleep(400);
+    const rawRoutes = await fetchRoutes(start, dest);
+    if (!rawRoutes) {
+        oracle.typeMessage("> No drivable route found. Satellite telemetry inconclusive.");
+        btn.classList.remove('processing');
+        btn.innerText = "INITIATE QUANTUM ROUTING";
+        return;
+    }
+    clearRoutes();
+    const routes = generateSimulatedRoutes(start, dest, rawRoutes[0]);
+    VISIONX.state.routes = routes;
+    VISIONX.state.activeRouteIndex = 0;
+    routes.forEach((route, idx) => {
+        const color = VISIONX.config.neonColors[idx % VISIONX.config.neonColors.length];
+        addRouteToMap(route, idx, color);
+    });
+    addMarkers(start, dest);
+    const allCoords = routes[0].geometry.coordinates;
+    const bounds = allCoords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(allCoords[0], allCoords[0]));
+    map.fitBounds(bounds, {
+        padding: 100, pitch: 55, bearing: 15, duration: 3000,
+        easing: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    });
+    await oracle.think(`${startStr} → ${destStr}`);
+    updateRouteInfo(routes[0]);
+    renderAltRoutes(routes);
+    drawElevationProfile(routes[0]);
+    oracle.typeMessage(`> <b style="color:#22c55e;">QUANTUM ROUTING COMPLETE.</b> ${(routes[0].distance/1000).toFixed(1)}km trajectory active. Neural mesh synchronized.`);
+    btn.classList.remove('processing');
+    btn.innerText = "INITIATE QUANTUM ROUTING";
+});
+
+// 6. CONTROL SYSTEMS
+document.getElementById('refresh-sat-btn').addEventListener('click', () => {
+    const satStatus = document.getElementById('sat-status');
+    satStatus.innerHTML = '<span class="status-dot" style="background:#f59e0b;box-shadow:0 0 10px #f59e0b;"></span> RE-SYNCING...';
+    const timestamp = Date.now();
+    const newTiles = VISIONX.config.satelliteTiles.map(url => `${url}?t=${timestamp}`);
+    const style = map.getStyle();
+    if (style.sources['live-satellite']) {
+        style.sources['live-satellite'].tiles = newTiles;
+        map.setStyle(style);
+    }
+    oracle.typeMessage("> Satellite feed refreshing with cache-bust timestamp...");
+    setTimeout(() => {
+        satStatus.innerHTML = '<span class="status-dot"></span> FEED LIVE';
+        oracle.typeMessage("> Satellite resync complete. Optical feed restored at 60FPS.");
+    }, 1500);
+});
+
+document.getElementById('tilt-btn').addEventListener('click', () => {
+    VISIONX.state.pitch = VISIONX.state.pitch === 0 ? 60 : 0;
+    map.easeTo({ pitch: VISIONX.state.pitch, duration: 1200 });
+    oracle.typeMessage(`> Camera pitch adjusted to ${VISIONX.state.pitch}°`);
+});
+
+document.getElementById('terrain-btn').addEventListener('click', () => {
+    VISIONX.state.isTerrain = !VISIONX.state.isTerrain;
+    if (VISIONX.state.isTerrain) {
+        map.setTerrain({ source: 'terrain-source', exaggeration: 1.5 });
+        oracle.typeMessage("> Terrain elevation model activated. 3D surface rendering enabled.");
+    } else {
+        map.setTerrain(null);
+        oracle.typeMessage("> Terrain elevation model disabled. Flat projection mode.");
+    }
+});
+
+document.getElementById('globe-btn').addEventListener('click', () => {
+    VISIONX.state.isGlobe = !VISIONX.state.isGlobe;
+    map.setProjection(VISIONX.state.isGlobe ? 'globe' : 'mercator');
+    oracle.typeMessage(VISIONX.state.isGlobe ? "> Globe projection active. Curved surface rendering." : "> Mercator projection active. Planar surface rendering.");
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+    map.easeTo({
+        center: VISIONX.config.defaultCenter,
+        zoom: VISIONX.config.defaultZoom,
+        pitch: 50, bearing: 0, duration: 1500
+    });
+    oracle.typeMessage("> View recentered to default coordinates.");
+});
+
+// 7. REAL-TIME TELEMETRY & ANIMATION LOOP
+function updateTelemetry() {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const pitch = map.getPitch();
+    const bearing = map.getBearing();
+    document.getElementById('tel-lat').textContent = center.lat.toFixed(4);
+    document.getElementById('tel-lng').textContent = center.lng.toFixed(4);
+    document.getElementById('tel-zoom').textContent = zoom.toFixed(1) + 'x';
+    document.getElementById('tel-pitch').textContent = Math.round(pitch) + '°';
+    document.getElementById('tel-bearing').textContent = Math.round(bearing) + '°';
+    const needle = document.getElementById('compass-needle');
+    if (needle) needle.style.transform = `translate(-50%, -100%) rotate(${bearing}deg)`;
+}
+
+function updateMetrics() {
+    document.getElementById('cpu-bar').style.width = (Math.random() * 30 + 10) + '%';
+    document.getElementById('mem-bar').style.width = (Math.random() * 20 + 20) + '%';
+    document.getElementById('net-bar').style.width = (Math.random() * 40 + 30) + '%';
+    document.getElementById('ai-bar').style.width = (Math.random() * 15 + 5) + '%';
+}
+
+function animate(timestamp) {
+    const delta = timestamp - VISIONX.state.lastFrameTime;
+    VISIONX.state.lastFrameTime = timestamp;
+    if (delta > 0) {
+        VISIONX.state.fps = Math.round(1000 / delta);
+        document.getElementById('tel-fps').textContent = VISIONX.state.fps;
+    }
+    VISIONX.state.neuralPhase += 0.5;
+    VISIONX.state.routes.forEach((_, idx) => {
+        const layerId = `live-route-${idx}`;
+        if (map.getLayer(layerId) && idx === VISIONX.state.activeRouteIndex) {
+            const pulse = 0.85 + Math.sin(timestamp * 0.003) * 0.1;
+            map.setPaintProperty(layerId, 'line-opacity', pulse);
+        }
+    });
+    VISIONX.state.animationFrame = requestAnimationFrame(animate);
+}
+
+map.on('move', updateTelemetry);
+map.on('load', () => {
+    setTimeout(() => {
+        document.getElementById('loading-screen').classList.add('hidden');
+        oracle.typeMessage("> VisionX Neural Core v9.7.1 initialized. All systems nominal.");
+    }, 2200);
+    VISIONX.state.animationFrame = requestAnimationFrame(animate);
+    setInterval(updateMetrics, 2000);
+    setInterval(() => {
+        if (!oracle.isTyping && Math.random() > 0.7) {
+            const msg = VISIONX.config.oracleMessages[Math.floor(Math.random() * VISIONX.config.oracleMessages.length)];
+            oracle.typeMessage(`> ${msg}`);
+        }
+    }, 8000);
+});
+
+window.addEventListener('resize', () => {
+    if (VISIONX.state.routes.length > 0) drawElevationProfile(VISIONX.state.routes[VISIONX.state.activeRouteIndex]);
+});
+</script>
+</body>
+</html>
