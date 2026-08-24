@@ -3,459 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VISIONX // MILITARY-GRADE DEFENSE COMMAND OS (AUTO INBOUND CALL GPS INTERCEPT)</title>
-    <!-- Leaflet GIS Map CSS -->
+    <title>VisionX // Enterprise Real Engine</title>
+    
+    <!-- Real Mapping & Routing Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
     <style>
-        :root {
-            --bg-deep: #020617;
-            --hud-cyan: #38bdf8;
-            --hud-green: #22c55e;
-            --hud-red: #ef4444;
-            --hud-border: rgba(56, 189, 248, 0.4);
-            --hud-bg: rgba(3, 7, 18, 0.96);
-            --font-mono: 'Courier New', Courier, monospace;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, monospace; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #020617; color: #f8fafc; }
+        
+        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-deep); font-family: var(--font-mono); }
-
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
-
+        /* Glassmorphism Tactical HUD */
         .hud-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 6px;
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; width: 92%; max-width: 450px;
+            background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 15px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            display: flex; flex-direction: column; gap: 12px;
         }
 
-        .hud-top { display: flex; flex-direction: column; gap: 3px; pointer-events: auto; width: 100%; max-width: 600px; margin: 0 auto; }
+        .hud-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px;
+        }
+        .brand { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #38bdf8; }
+        .status-tag { font-size: 10px; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; }
 
-        .search-box {
-            background: var(--hud-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--hud-cyan); border-radius: 6px; padding: 5px 8px;
-            display: flex; gap: 6px; box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+        .search-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-box {
+            width: 100%; background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 6px; padding: 10px 12px; color: #38bdf8; font-size: 13px; outline: none;
         }
+        .input-box::placeholder { color: #64748b; }
 
-        #target-input {
-            flex: 1; background: transparent; border: none; outline: none; color: var(--hud-cyan);
-            font-size: 10px; font-weight: bold; font-family: var(--font-mono);
+        .btn-primary {
+            width: 100%; background: linear-gradient(135deg, #0284c7, #2563eb);
+            border: none; border-radius: 6px; padding: 12px; color: #fff;
+            font-size: 12px; font-weight: bold; letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
         }
+        .btn-primary:active { opacity: 0.9; }
 
-        #sync-gps-btn, #lock-btn, #sim-call-btn {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); border: none; border-radius: 4px;
-            padding: 4px 8px; color: #fff; font-weight: bold; font-size: 8px; letter-spacing: 1px; cursor: pointer;
+        /* Real Data Telemetry Grid */
+        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .tele-card {
+            background: rgba(2, 6, 23, 0.4); border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px; padding: 8px;
         }
-        #sync-gps-btn { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
-        #sim-call-btn { background: linear-gradient(135deg, #dc2626, #b91c1c); animation: pulse-alert 1.5s infinite; }
+        .tele-title { font-size: 9px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+        .tele-value { font-size: 12px; color: #38bdf8; font-weight: 700; margin-top: 2px; }
 
-        @keyframes pulse-alert {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-        .panel, .radio-panel, .status-panel, .packet-panel {
-            background: var(--hud-bg); backdrop-filter: blur(10px);
-            border: 1px solid var(--hud-border); border-radius: 6px; padding: 4px 6px;
-        }
-        .label { display: block; color: var(--hud-cyan); font-size: 6px; font-weight: bold; letter-spacing: 1px; }
-        .value { display: block; color: #ffffff; font-size: 8px; font-weight: bold; margin-top: 1px; }
-
-        .hud-middle { width: 100%; max-width: 600px; margin: 0 auto; pointer-events: auto; display: flex; flex-direction: column; gap: 3px; }
-
-        #audio-wave {
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, var(--hud-green), transparent);
-            animation: wave-anim 0.25s infinite linear;
-        }
-        @keyframes wave-anim {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .packet-terminal {
-            background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(34, 197, 94, 0.4);
-            border-radius: 4px; padding: 3px 5px; height: 44px; overflow-y: hidden;
-            font-size: 6px; color: var(--hud-green); font-family: var(--font-mono);
-            display: flex; flex-direction: column; justify-content: flex-end;
-        }
-
-        .hud-bottom { display: flex; flex-direction: column; gap: 3px; pointer-events: auto; width: 100%; max-width: 600px; margin: 0 auto; }
-        .control-buttons { display: flex; gap: 3px; }
-        .nav-btn {
-            flex: 1; padding: 5px 3px; border-radius: 5px; background: rgba(15, 23, 42, 0.95);
-            border: 1px solid var(--hud-border); color: var(--hud-cyan); font-weight: bold; font-size: 7px;
-            letter-spacing: 0.5px; text-align: center; cursor: pointer; text-transform: uppercase;
-        }
-        .nav-btn.active {
-            background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #fff; border-color: var(--hud-cyan);
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-        }
-
-        .tactical-marker {
-            width: 24px; height: 24px; background: rgba(56, 189, 248, 0.3);
-            border: 2px solid #38bdf8; border-radius: 50%; box-shadow: 0 0 20px #38bdf8;
-            animation: tactical-pulse 1.2s infinite ease-in-out;
-        }
-        @keyframes tactical-pulse { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.8); opacity: 0; } }
-
-        .incoming-call-banner {
-            background: rgba(239, 68, 68, 0.2); border: 1px solid var(--hud-red); border-radius: 4px;
-            padding: 4px 6px; display: none; animation: flash-banner 0.8s infinite alternate;
-        }
-        @keyframes flash-banner { from { background: rgba(239, 68, 68, 0.2); } to { background: rgba(239, 68, 68, 0.6); } }
+        /* Hide Default Ugly Routing Box */
+        .leaflet-routing-container { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- GIS Map Viewport -->
     <div id="map"></div>
 
-    <!-- Master Command HUD Overlay -->
     <div class="hud-container">
-        <!-- Top Search & Telemetry -->
-        <div class="hud-top">
-            <div class="search-box">
-                <button id="sync-gps-btn">SYNC GPS</button>
-                <input type="text" id="target-input" placeholder="ENTER PHONE OR TARGET NAME...">
-                <button id="lock-btn">INTERCEPT</button>
-                <button id="sim-call-btn">SIMULATE INBOUND CALL</button>
-            </div>
-
-            <!-- Live Incoming Call Alert Banner -->
-            <div class="incoming-call-banner" id="call-alert-banner">
-                <span class="label" style="color: #fff; font-size: 7px;">🚨 LIVE INBOUND CALL DETECTED (AUTO-GPS LOCK ACTIVE)</span>
-                <span class="value" id="call-caller-info" style="color: #fca5a5; font-size: 9px;">CALLER: +92 300 9876543 | LOC: ACQUIRING...</span>
-            </div>
-
-            <div class="telemetry-grid">
-                <div class="panel">
-                    <span class="label">BASEBAND & INBOUND HOOK</span>
-                    <span class="value" id="server-link-status" style="color: var(--hud-green);">LISTENING FOR CALLS (ACTIVE)</span>
-                </div>
-                <div class="panel" style="text-align: right;">
-                    <span class="label">EXACT COORDS (LAT, LON)</span>
-                    <span class="value" id="coord-display">ACQUIRING HARDWARE GPS...</span>
-                </div>
-            </div>
+        <div class="hud-header">
+            <span class="brand">VISIONX // LIVE_ENGINE</span>
+            <div class="status-tag"><div class="dot"></div> REALTIME GPS</div>
         </div>
 
-        <!-- Middle Modules -->
-        <div class="hud-middle">
-            <div class="radio-panel" style="border-color: var(--hud-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                    <span class="label" style="color: var(--hud-green);">TACTICAL RADIO & CALL SQUELCH (FREQ: 142.85 MHz)</span>
-                    <span id="radio-status" style="font-size: 7px; color: var(--hud-red); font-weight: bold;">● MUTED</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <button id="toggle-radio" style="background: var(--hud-green); color: #000; border: none; padding: 4px 10px; font-size: 7px; font-weight: bold; border-radius: 3px; cursor: pointer;">LISTEN COMMS</button>
-                    <div style="flex: 1; height: 8px; background: rgba(0,0,0,0.8); border: 1px solid rgba(34,197,94,0.3); position: relative; overflow: hidden; border-radius: 2px;">
-                        <div id="audio-wave"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="packet-panel">
-                <span class="label" style="color: var(--hud-cyan); margin-bottom: 2px;">GSM / INBOUND CALL TELEMETRY & BTS SIGNAL LOG</span>
-                <div class="packet-terminal" id="packet-log">
-                    <div>[0.001] INBOUND_LISTENER_PORT_OPEN -> READY_FOR_SMARTPHONE_CALLS</div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="label">GEOFENCE MESH & ACTIVE CALL TRACKER</span>
-                    <span id="tower-status" style="font-size: 7px; color: var(--hud-cyan); font-weight: bold;">WAITING FOR CALL HANDSHAKE...</span>
-                </div>
-            </div>
+        <div class="search-group">
+            <input type="text" id="start-loc" class="input-box" placeholder="Start Point (e.g., Islamabad)">
+            <input type="text" id="dest-loc" class="input-box" placeholder="Destination (e.g., Abbottabad)">
+            <button class="btn-primary" id="route-btn">GENERATE REAL ROUTE</button>
         </div>
 
-        <!-- Bottom Action Modules -->
-        <div class="hud-bottom">
-            <div class="status-panel">
-                <span class="label">COMMAND STATUS:</span>
-                <span class="value" id="osint-status">SYSTEM ARMED. ANY SMARTPHONE CALLING YOUR NUMBER WILL AUTO-PIN LOCATION.</span>
+        <div class="telemetry-grid">
+            <div class="tele-card">
+                <div class="tele-title">CURRENT COORD</div>
+                <div class="tele-value" id="coord-val">33.68, 73.04</div>
             </div>
-            <div class="control-buttons">
-                <button class="nav-btn active" id="btn-sat">HD SATELLITE</button>
-                <button class="nav-btn" id="btn-seismic">LIVE SEISMIC</button>
-                <button class="nav-btn" id="btn-weather">WEATHER RADAR</button>
+            <div class="tele-card">
+                <div class="tele-title">ZOOM LEVEL</div>
+                <div class="tele-value" id="zoom-val">15x</div>
             </div>
         </div>
     </div>
 
-    <!-- Leaflet GIS Engine Script -->
+    <!-- Engine Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
     <script>
-        const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([33.6844, 73.0479], 16);
-        
-        const satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 21 });
-        const weatherLayer = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=demo', { maxZoom: 21, opacity: 0.6 });
-        const seismicLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', { maxZoom: 21 });
-        satLayer.addTo(map);
+        // 1. Initialize Real Satellite Map
+        const map = L.map('map', { zoomControl: false, minZoom: 2, maxZoom: 20 }).setView([33.6844, 73.0479], 15);
 
-        let currentMarker = null;
-        let geoFenceCircle = null;
-        let realTowerMarkers = [];
-        let towerMeshLines = [];
-        let inboundCallerMarker = null;
-        let userLat = 33.6844;
-        let userLon = 73.0479;
+        // High-Precision Esri World Satellite Tiles
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20,
+            attribution: 'Esri Satellite Engine'
+        }).addTo(map);
 
-        // --- ACCURATE GEOFENCE & CELL TOWER MESH GENERATOR ---
-        function renderCellTowersAndGeoFence(lat, lon, targetName = "LOCAL DEVICE") {
-            if (geoFenceCircle) map.removeLayer(geoFenceCircle);
-            realTowerMarkers.forEach(m => map.removeLayer(m));
-            towerMeshLines.forEach(l => map.removeLayer(l));
-            realTowerMarkers = [];
-            towerMeshLines = [];
+        // 2. Real Routing Controller
+        let routingControl = L.Routing.control({
+            waypoints: [],
+            routeWhileDragging: true,
+            lineOptions: { styles: [{ color: '#38bdf8', opacity: 0.9, weight: 6 }] }
+        }).addTo(map);
 
-            // 1. Geo-fence Perimeter (1.5 KM Military Radius)
-            geoFenceCircle = L.circle([lat, lon], {
-                color: '#22c55e',
-                fillColor: '#22c55e',
-                fillOpacity: 0.08,
-                radius: 1500,
-                weight: 2
-            }).addTo(map);
-
-            // 2. 3 Triangulated BTS Cell Towers around user position
-            const serverTowers = [
-                { name: "BTS TOWER #01 [GSM 900MHz HLR]", offsetLat: 0.0032, offsetLon: 0.0028, signal: "-47 dBm (Locked)" },
-                { name: "BTS TOWER #02 [LTE 4G eNodeB]", offsetLat: -0.0028, offsetLon: 0.0031, signal: "-51 dBm (Active)" },
-                { name: "BTS TOWER #03 [5G Core Relay Node]", offsetLat: 0.0004, offsetLon: -0.0042, signal: "-44 dBm (Secure)" }
-            ];
-
-            serverTowers.forEach((tower, idx) => {
-                const tLat = lat + tower.offsetLat;
-                const tLon = lon + tower.offsetLon;
-
-                const meshLine = L.polyline([[lat, lon], [tLat, tLon]], {
-                    color: '#38bdf8', weight: 1.5, opacity: 0.8, dashArray: '4, 4'
-                }).addTo(map);
-                towerMeshLines.push(meshLine);
-
-                const towerHtml = `<div style="width:16px; height:16px; background:#22c55e; border:2px solid #fff; border-radius:3px; box-shadow:0 0 14px #22c55e; display:flex; align-items:center; justify-content:center; font-size:7px; color:#000; font-weight:bold;">T${idx+1}</div>`;
-                const tIcon = L.divIcon({ className: '', html: towerHtml, iconSize: [16, 16], iconAnchor: [8, 8] });
-                const marker = L.marker([tLat, tLon], { icon: tIcon }).addTo(map);
-                marker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#16a34a;">${tower.name}</b><br>Coords: ${tLat.toFixed(5)}, ${tLon.toFixed(5)}<br>Signal: ${tower.signal}`);
-                realTowerMarkers.push(marker);
-            });
-
-            document.getElementById('tower-status').innerText = `GEOFENCE ACTIVE (1.5KM) | 3 BTS TOWERS SECURED`;
-        }
-
-        // --- HARDWARE GPS SYNC FUNCTION ---
-        function syncMobileGPS() {
-            document.getElementById('osint-status').innerText = `REQUESTING HARDWARE GPS & BASEBAND PERMISSION...`;
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        userLat = pos.coords.latitude;
-                        userLon = pos.coords.longitude;
-                        
-                        map.flyTo([userLat, userLon], 17, { duration: 2.0 });
-
-                        if (currentMarker) map.removeLayer(currentMarker);
-                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
-                        currentMarker = L.marker([userLat, userLon], { icon: tacticalIcon }).addTo(map);
-                        currentMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#38bdf8;">YOUR MOBILE HARDWARE POSITION</b><br>Lat: ${userLat.toFixed(5)} | Lon: ${userLon.toFixed(5)}`);
-
-                        renderCellTowersAndGeoFence(userLat, userLon, "USER MOBILE DEVICE");
-                        document.getElementById('osint-status').innerText = `HARDWARE GPS LOCKED: [${userLat.toFixed(4)}, ${userLon.toFixed(4)}]`;
-                        document.getElementById('coord-display').innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
-                    },
-                    (error) => {
-                        fetch('https://ipapi.co/json/')
-                            .then(res => res.json())
-                            .then(ipData => {
-                                userLat = ipData.latitude || 33.6844;
-                                userLon = ipData.longitude || 73.0479;
-                                map.flyTo([userLat, userLon], 16);
-                                if (currentMarker) map.removeLayer(currentMarker);
-                                const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
-                                currentMarker = L.marker([userLat, userLon], { icon: tacticalIcon }).addTo(map);
-                                renderCellTowersAndGeoFence(userLat, userLon, "IP NETWORK NODE");
-                                document.getElementById('osint-status').innerText = `IP NETWORK ANCHOR LOCKED: [${ipData.ip}]`;
-                                document.getElementById('coord-display').innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
-                            });
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
+        // Function to convert city name to real geographic coordinates (Geocoding API)
+        async function getCoordinates(query) {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
             }
+            return null;
         }
 
-        window.addEventListener('load', () => { setTimeout(syncMobileGPS, 1000); });
-        document.getElementById('sync-gps-btn').addEventListener('click', syncMobileGPS);
+        // 3. Action Event for Navigation
+        document.getElementById('route-btn').addEventListener('click', async () => {
+            const startStr = document.getElementById('start-loc').value.trim();
+            const destStr = document.getElementById('dest-loc').value.trim();
+            const btn = document.getElementById('route-btn');
 
-        // --- AUTOMATIC INBOUND CALL GPS DETECTOR & SIMULATOR ---
-        function simulateInboundCall() {
-            // Random offset near user to simulate caller's live smartphone GPS transmission
-            const randLatOffset = (Math.random() - 0.5) * 0.008;
-            const randLonOffset = (Math.random() - 0.5) * 0.008;
-            const callerLat = userLat + randLatOffset;
-            const callerLon = userLon + randLonOffset;
+            if (!startStr || !destStr) {
+                alert("Please enter both start point and destination.");
+                return;
+            }
 
-            const randomPhone = "+92 3" + Math.floor(10 + Math.random() * 89) + " " + Math.floor(1000000 + Math.random() * 9000000);
-            
-            // Show alert banner
-            const banner = document.getElementById('call-alert-banner');
-            const infoText = document.getElementById('call-caller-info');
-            banner.style.display = 'block';
-            infoText.innerText = `CALLER: ${randomPhone} | GPS: [${callerLat.toFixed(4)}, ${callerLon.toFixed(4)}]`;
+            btn.innerText = "SEARCHING REAL PATH...";
 
-            // Fly map to caller location
-            map.flyTo([callerLat, callerLon], 17, { duration: 1.5 });
+            const startCoords = await getCoordinates(startStr);
+            const destCoords = await getCoordinates(destStr);
 
-            if (inboundCallerMarker) map.removeLayer(inboundCallerMarker);
-            const callHtml = `<div style="width:20px; height:20px; background:#ef4444; border:2px solid #fff; border-radius:50%; box-shadow:0 0 20px #ef4444; animation: tactical-pulse 1s infinite;"></div>`;
-            const callIcon = L.divIcon({ className: '', html: callHtml, iconSize: [20, 20], iconAnchor: [10, 10] });
-            inboundCallerMarker = L.marker([callerLat, callerLon], { icon: callIcon }).addTo(map);
-            inboundCallerMarker.bindPopup(`<b style="font-family:monospace; font-size:10px; color:#ef4444;">🚨 AUTO-DETECTED INBOUND CALLER</b><br>Phone: ${randomPhone}<br>Coords: ${callerLat.toFixed(5)}, ${callerLon.toFixed(5)}<br>Status: Smart-Device GPS Handshake Complete!`).openPopup();
-
-            document.getElementById('osint-status').innerText = `INBOUND CALL AUTOMATICALLY TRACED: ${randomPhone} AT [${callerLat.toFixed(4)}, ${callerLon.toFixed(4)}]`;
-
-            // Log packet
-            const terminal = document.getElementById('packet-log');
-            const timeTag = (performance.now() / 1000).toFixed(3);
-            const div = document.createElement('div');
-            div.style.color = "#fca5a5";
-            div.innerText = `[${timeTag}] INBOUND_CALL_GPS_HANDSHAKE_OK -> MSISDN: ${randomPhone} | LAT/LON LOCKED`;
-            terminal.appendChild(div);
-            if(terminal.children.length > 4) terminal.removeChild(terminal.firstChild);
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-
-        document.getElementById('sim-call-btn').addEventListener('click', simulateInboundCall);
-
-        // --- LIVE GSM & CALL PACKET LOGS ---
-        const packetLogs = [
-            "GSM_CALL_LISTENER [Listening on Port 5060 - SIP/VoLTE]",
-            "HLR_VLR_LOCATION_UPDATE [BTS Server #01 Handshake OK]",
-            "SMARTPHONE_GPS_WEBHOOK_READY [Incoming Handshake Secure]",
-            "SIP/SDP 200 OK - Active Inbound Voice Stream Ready",
-            "IP_GEO_SOCKET_BIND [Client GPS Packet Route: Encrypted]"
-        ];
-
-        setInterval(() => {
-            const terminal = document.getElementById('packet-log');
-            const randomLog = packetLogs[Math.floor(Math.random() * packetLogs.length)];
-            const timeTag = (performance.now() / 1000).toFixed(3);
-            const hexDump = Array.from({length: 6}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join(' ').toUpperCase();
-            
-            const div = document.createElement('div');
-            div.innerText = `[${timeTag}] ${randomLog} | HEX: ${hexDump}`;
-            terminal.appendChild(div);
-            if(terminal.children.length > 4) terminal.removeChild(terminal.firstChild);
-            terminal.scrollTop = terminal.scrollHeight;
-        }, 1200);
-
-        // --- WORKING TACTICAL RADIO & CALL AUDIO SQUELCH ENGINE ---
-        let audioCtx = null;
-        let noiseNode = null;
-        let gainNode = null;
-        let isRadioActive = false;
-
-        function toggleTacticalRadio() {
-            if (!isRadioActive) {
-                try {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const bufferSize = audioCtx.sampleRate * 2;
-                    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                    const output = noiseBuffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
-
-                    noiseNode = audioCtx.createBufferSource();
-                    noiseNode.buffer = noiseBuffer;
-                    noiseNode.loop = true;
-
-                    const filter = audioCtx.createBiquadFilter();
-                    filter.type = 'bandpass';
-                    filter.frequency.value = 1800;
-                    filter.Q.value = 5.0;
-
-                    gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-
-                    noiseNode.connect(filter);
-                    filter.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    noiseNode.start();
-
-                    isRadioActive = true;
-                    document.getElementById('radio-status').innerText = "● CALL / COMMS LIVE";
-                    document.getElementById('radio-status').style.color = "var(--hud-green)";
-                    document.getElementById('toggle-radio').innerText = "MUTE COMMS";
-                    document.getElementById('toggle-radio').style.background = "var(--hud-red)";
-                    document.getElementById('toggle-radio').style.color = "#fff";
-                } catch(e) {
-                    alert("Tap 'LISTEN COMMS' again to authorize audio context.");
-                }
+            if (startCoords && destCoords) {
+                routingControl.setWaypoints([
+                    L.latLng(startCoords[0], startCoords[1]),
+                    L.latLng(destCoords[0], destCoords[1])
+                ]);
+                map.fitBounds([startCoords, destCoords]);
+                btn.innerText = "ROUTE LOCKED";
+                setTimeout(() => { btn.innerText = "GENERATE REAL ROUTE"; }, 3000);
             } else {
-                if (noiseNode) { noiseNode.stop(); noiseNode.disconnect(); }
-                if (audioCtx) { audioCtx.close(); }
-                isRadioActive = false;
-                document.getElementById('radio-status').innerText = "● MUTED";
-                document.getElementById('radio-status').style.color = "var(--hud-red)";
-                document.getElementById('toggle-radio').innerText = "LISTEN COMMS";
-                document.getElementById('toggle-radio').style.background = "var(--hud-green)";
-                document.getElementById('toggle-radio').style.color = "#000";
+                alert("Could not locate one of the places on the map. Try another location.");
+                btn.innerText = "GENERATE REAL ROUTE";
             }
-        }
-
-        document.getElementById('toggle-radio').addEventListener('click', toggleTacticalRadio);
-
-        // --- TARGET INTERCEPTION SEARCH ---
-        function interceptTarget() {
-            const query = document.getElementById('target-input').value.trim();
-            if (!query) return;
-
-            document.getElementById('osint-status').innerText = `INTERCEPTING TARGET: ${query.toUpperCase()}...`;
-
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-
-                        map.flyTo([lat, lon], 17, { duration: 2.0 });
-
-                        if (currentMarker) map.removeLayer(currentMarker);
-                        const tacticalIcon = L.divIcon({ className: 'tactical-marker', iconSize: [26, 26], iconAnchor: [13, 13] });
-                        currentMarker = L.marker([lat, lon], { icon: tacticalIcon }).addTo(map);
-
-                        renderCellTowersAndGeoFence(lat, lon, query.toUpperCase());
-                        document.getElementById('osint-status').innerText = `TARGET LOCKED & INTERCEPTED: [${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
-                        document.getElementById('coord-display').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                    } else {
-                        document.getElementById('osint-status').innerText = `CALL TRACE LOCKED ON NUMBER: ${query}`;
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('osint-status').innerText = `GSM CELL SERVER RELAY SECURED FOR: ${query}`;
-                });
-        }
-
-        document.getElementById('lock-btn').addEventListener('click', interceptTarget);
-        document.getElementById('target-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') interceptTarget(); });
-
-        // --- MAP LAYERS ---
-        document.getElementById('btn-sat').addEventListener('click', () => {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-sat').classList.add('active');
-            map.removeLayer(weatherLayer); map.removeLayer(seismicLayer); satLayer.addTo(map);
         });
-        document.getElementById('btn-weather').addEventListener('click', () => {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-weather').classList.add('active');
-            map.removeLayer(satLayer); map.removeLayer(seismicLayer); weatherLayer.addTo(map);
-        });
-        document.getElementById('btn-seismic').addEventListener('click', () => {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-seismic').classList.add('active');
-            map.removeLayer(satLayer); map.removeLayer(weatherLayer); seismicLayer.addTo(map);
+
+        // Live Telemetry Tracking
+        map.on('move', () => {
+            const center = map.getCenter();
+            document.getElementById('coord-val').innerText = `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
+            document.getElementById('zoom-val').innerText = `${map.getZoom()}x`;
         });
     </script>
 </body>
