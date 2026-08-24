@@ -3,49 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VisionX // 3D Satellite Tactical Engine</title>
+    <title>VisionX // Autonomous AI Tactical Engine</title>
     
-    <!-- MapLibre GL 3D Libraries -->
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; color: #38bdf8; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; }
         
         #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* HUD Controller */
-        .hud-panel {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; width: 92%; max-width: 420px;
-            background: rgba(3, 7, 18, 0.9); backdrop-filter: blur(16px);
-            border: 1px solid #0284c7; border-radius: 10px; padding: 12px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
-            display: flex; flex-direction: column; gap: 8px;
+        /* Minimalist Search Bar */
+        .search-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; width: 90%; max-width: 440px;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 30px;
+            padding: 6px 16px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
-        .hud-header {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 6px;
+        .search-input {
+            flex: 1; background: transparent; border: none; outline: none;
+            color: #fff; font-size: 14px; padding: 8px 0;
         }
-        .brand { font-size: 12px; font-weight: bold; letter-spacing: 2px; color: #38bdf8; }
-        .live-tag { font-size: 9px; color: #22c55e; font-weight: bold; }
+        .search-input::placeholder { color: #94a3b8; }
 
-        .inputs-group { display: flex; flex-direction: column; gap: 6px; }
-        .hud-input {
-            width: 100%; background: #0f172a; border: 1px solid #1e293b; border-radius: 4px;
-            padding: 8px 10px; color: #fff; font-size: 12px; outline: none;
+        .search-btn {
+            background: #0284c7; color: #fff; border: none; width: 36px; height: 36px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s ease;
+        }
+        .search-btn:hover { background: #0369a1; transform: scale(1.05); }
+
+        /* Side Tactical Floating Buttons */
+        .side-menu {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            z-index: 1000; display: flex; flex-direction: column; gap: 12px;
         }
 
-        .hud-btn {
-            background: #0284c7; color: white; border: none; border-radius: 4px;
-            padding: 10px; font-weight: bold; font-size: 11px; cursor: pointer; letter-spacing: 1px;
+        .icon-btn {
+            width: 44px; height: 44px; background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px; color: #38bdf8; display: flex; align-items: center;
+            justify-content: center; font-size: 16px; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: 0.2s;
         }
+        .icon-btn:active, .icon-btn.active { background: #0284c7; color: #fff; }
 
-        .hud-status {
-            display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8;
-            border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;
+        /* AI Status Badge */
+        .ai-badge {
+            position: absolute; bottom: 80px; left: 20px; z-index: 1000;
+            background: rgba(2, 132, 199, 0.2); border: 1px solid #0284c7;
+            padding: 6px 12px; border-radius: 20px; font-size: 11px; color: #38bdf8;
+            backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px;
+            font-weight: bold; letter-spacing: 1px;
+        }
+        .ai-pulse { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 10px #22c55e; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* Bottom Live Telemetry Strip */
+        .telemetry-strip {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 10px;
+            padding: 8px 14px; font-size: 11px; color: #38bdf8;
+            display: flex; gap: 15px; font-weight: 600;
         }
     </style>
 </head>
@@ -53,157 +78,151 @@
 
     <div id="map"></div>
 
-    <div class="hud-panel">
-        <div class="hud-header">
-            <span class="brand">VISIONX // 3D_SATELLITE_CORE</span>
-            <span class="live-tag">● VECTOR 3D ENGINE</span>
-        </div>
+    <!-- Floating Top Search -->
+    <div class="search-container">
+        <i class="fa-solid fa-brain" style="color: #38bdf8;"></i>
+        <input type="text" id="target-input" class="search-input" placeholder="AI Autonomous Search (Chowk, Area)...">
+        <button class="search-btn" id="search-trigger"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
 
-        <div class="inputs-group">
-            <input type="text" id="start-node" class="hud-input" placeholder="Start Point (e.g. Islamabad)">
-            <input type="text" id="dest-node" class="hud-input" placeholder="Destination (e.g. Karachi)">
-            <button class="hud-btn" id="nav-btn">CALCULATE REAL ROAD ROUTE</button>
-        </div>
+    <!-- AI Active Status -->
+    <div class="ai-badge">
+        <div class="ai-pulse"></div> AI ORBIT: <span id="ai-status-text">STANDBY</span>
+    </div>
 
-        <div class="hud-status">
-            <span id="pitch-display">PITCH: 45° (3D)</span>
-            <span id="zoom-display">ZOOM: 14x</span>
-        </div>
+    <!-- Floating Side Controls -->
+    <div class="side-menu">
+        <button class="icon-btn" id="ai-orbit-btn" title="Toggle AI Auto-Rotation"><i class="fa-solid fa-satellite-dish"></i></button>
+        <button class="icon-btn" id="tilt-btn" title="Toggle 3D Angle"><i class="fa-solid fa-cube"></i></button>
+        <button class="icon-btn" id="recenter-btn" title="Reset Camera"><i class="fa-solid fa-compass"></i></button>
+    </div>
+
+    <!-- Bottom Status -->
+    <div class="telemetry-strip">
+        <span id="coord-hud">LAT: 33.68 | LNG: 73.04</span>
+        <span id="zoom-hud">ZOOM: 12x</span>
     </div>
 
     <script>
-        // 1. Initialize MapLibre 3D Satellite Map (With Tilt and Rotation)
         const map = new maplibregl.Map({
             container: 'map',
             style: {
                 version: 8,
                 sources: {
-                    'satellite-tiles': {
+                    'satellite': {
                         type: 'raster',
-                        tiles: [
-                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                        ],
+                        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
                         tileSize: 256,
                         maxzoom: 19
                     }
                 },
-                layers: [
-                    {
-                        id: 'satellite-layer',
-                        type: 'raster',
-                        source: 'satellite-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }
-                ]
+                layers: [{
+                    id: 'satellite-layer',
+                    type: 'raster',
+                    source: 'satellite',
+                    minzoom: 0,
+                    maxzoom: 19
+                }]
             },
-            center: [73.0479, 33.6844], // Islamabad [LNG, LAT]
-            zoom: 13,
-            pitch: 50, // 3D Perspective View
-            bearing: -10, // Rotated Angle
-            maxZoom: 18
+            center: [73.0479, 33.6844],
+            zoom: 12,
+            pitch: 45,
+            bearing: 0
         });
 
-        // Add 3D Navigation Controls
-        map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+        let currentPitch = 45;
+        let isAiOrbiting = false;
+        let orbitTimer = null;
 
-        // 2. Geocoding Function (Location to Lat/Lng)
-        async function getCoords(location) {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+        // AI Autonomous Smart Search & Camera Lock
+        async function locateTargetAI() {
+            const query = document.getElementById('target-input').value.trim();
+            if(!query) return;
+
+            document.getElementById('ai-status-text').innerText = "ANALYZING...";
+
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
             const data = await res.json();
-            if (data && data.length > 0) {
-                return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+
+            if(data && data.length > 0) {
+                const lon = parseFloat(data[0].lon);
+                const lat = parseFloat(data[0].lat);
+                const displayName = data[0].display_name.split(',')[0];
+
+                document.getElementById('ai-status-text').innerText = "LOCKED & ORBITING";
+
+                // Cinematic AI Fly-to
+                map.flyTo({
+                    center: [lon, lat],
+                    zoom: 16.5,
+                    pitch: 60,
+                    bearing: 30,
+                    essential: true,
+                    duration: 3500
+                });
+
+                new maplibregl.Popup()
+                    .setLngLat([lon, lat])
+                    .setHTML(`<b style="color:#0284c7;">AI TARGET IDENTIFIED:</b><br>${displayName}`)
+                    .addTo(map);
+
+                // Automatically trigger AI Rotation once target is locked
+                startAiOrbit();
+            } else {
+                document.getElementById('ai-status-text').innerText = "TARGET NOT FOUND";
+                alert("AI could not map this location.");
             }
-            return null;
         }
 
-        // 3. Real Road Route Engine (OSRM Routing Service)
-        document.getElementById('nav-btn').addEventListener('click', async () => {
-            const startStr = document.getElementById('start-node').value.trim();
-            const destStr = document.getElementById('dest-node').value.trim();
-            const btn = document.getElementById('nav-btn');
+        // AI Autonomous Continuous 360 Rotation (Orbit Mode)
+        function startAiOrbit() {
+            if(orbitTimer) clearInterval(orbitTimer);
+            isAiOrbiting = true;
+            document.getElementById('ai-orbit-btn').classList.add('active');
+            document.getElementById('ai-status-text').innerText = "AUTONOMOUS ORBIT ACTIVE";
 
-            if(!startStr || !destStr) {
-                alert("Please fill both location fields.");
-                return;
-            }
+            let bearingAngle = map.getBearing();
+            orbitTimer = setInterval(() => {
+                bearingAngle += 0.8; // Smooth 360 rotation speed
+                map.rotateTo(bearingAngle, { duration: 100 });
+            }, 100);
+        }
 
-            btn.innerText = "FETCHING ROAD GEOMETRY...";
+        function stopAiOrbit() {
+            if(orbitTimer) clearInterval(orbitTimer);
+            isAiOrbiting = false;
+            document.getElementById('ai-orbit-btn').classList.remove('active');
+            document.getElementById('ai-status-text').innerText = "STANDBY";
+        }
 
-            const startCoords = await getCoords(startStr);
-            const destCoords = await getCoords(destStr);
+        // Event Listeners
+        document.getElementById('search-trigger').addEventListener('click', locateTargetAI);
+        document.getElementById('target-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') locateTargetAI(); });
 
-            if(!startCoords || !destCoords) {
-                alert("Location not found.");
-                btn.innerText = "CALCULATE REAL ROAD ROUTE";
-                return;
-            }
-
-            // Fetch actual road geometry from OpenSource Routing Machine
-            const routeUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[0]},${startCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson`;
-
-            try {
-                const routeRes = await fetch(routeUrl);
-                const routeData = await routeRes.json();
-
-                if(!routeData.routes || routeData.routes.length === 0) {
-                    alert("No driving route found between these points.");
-                    return;
-                }
-
-                const geometry = routeData.routes[0].geometry;
-
-                // Remove existing route if any
-                if (map.getSource('route')) {
-                    map.removeLayer('route-line');
-                    map.removeSource('route');
-                }
-
-                // Add Real Road Geometry Polyline to Map
-                map.addSource('route', {
-                    'type': 'geojson',
-                    'data': {
-                        'type': 'Feature',
-                        'properties': {},
-                        'geometry': geometry
-                    }
-                });
-
-                map.addLayer({
-                    'id': 'route-line',
-                    'type': 'line',
-                    'source': 'route',
-                    'layout': {
-                        'line-join': 'round',
-                        'line-cap': 'round'
-                    },
-                    'paint': {
-                        'line-color': '#00f0ff',
-                        'line-width': 6,
-                        'line-opacity': 0.85
-                    }
-                });
-
-                // Auto Fit Camera with Smooth 3D Transition
-                const coordinates = geometry.coordinates;
-                const bounds = coordinates.reduce((bounds, coord) => {
-                    return bounds.extend(coord);
-                }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
-
-                map.fitBounds(bounds, { padding: 80, pitch: 45, duration: 2500 });
-                btn.innerText = "ROUTE LOCKED (ROAD PATTERN)";
-
-            } catch (e) {
-                alert("Error connecting to route server.");
-            } finally {
-                setTimeout(() => { btn.innerText = "CALCULATE REAL ROAD ROUTE"; }, 3000);
+        document.getElementById('ai-orbit-btn').addEventListener('click', () => {
+            if(isAiOrbiting) {
+                stopAiOrbit();
+            } else {
+                startAiOrbit();
             }
         });
 
-        // Camera Tracking Display
+        document.getElementById('tilt-btn').addEventListener('click', () => {
+            currentPitch = currentPitch === 0 ? 60 : 0;
+            map.easeTo({ pitch: currentPitch, duration: 1000 });
+        });
+
+        document.getElementById('recenter-btn').addEventListener('click', () => {
+            stopAiOrbit();
+            map.easeTo({ pitch: 45, bearing: 0, zoom: 12, duration: 1200 });
+            document.getElementById('ai-status-text').innerText = "STANDBY";
+        });
+
+        // Telemetry Update
         map.on('move', () => {
-            document.getElementById('zoom-display').innerText = `ZOOM: ${map.getZoom().toFixed(1)}x`;
-            document.getElementById('pitch-display').innerText = `PITCH: ${map.getPitch().toFixed(0)}° (3D)`;
+            const center = map.getCenter();
+            document.getElementById('coord-hud').innerText = `LAT: ${center.lat.toFixed(4)} | LNG: ${center.lng.toFixed(4)}`;
+            document.getElementById('zoom-hud').innerText = `ZOOM: ${map.getZoom().toFixed(1)}x`;
         });
     </script>
 </body>
