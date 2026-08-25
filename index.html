@@ -1,648 +1,249 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VisionX // Autonomous Neural Navigation Core v9.7.1</title>
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
-        :root { --neon-cyan: #00f0ff; --neon-blue: #2563eb; --neon-green: #22c55e; --neon-red: #ef4444; --neon-amber: #f59e0b; --neon-purple: #a855f7; --bg-deep: #020617; --glass-bg: rgba(3,7,18,0.88); --glass-border: rgba(56,189,248,0.35); }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: 'Rajdhani',sans-serif; }
-        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        .crt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.08) 50%); background-size: 100% 4px; opacity: 0.4; }
-        .crt-vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1999; background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%); }
-        .grid-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1500; background-image: linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px); background-size: 80px 80px; opacity: 0.6; }
-        .hud-panel { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 94%; max-width: 520px; background: var(--glass-bg); backdrop-filter: blur(30px) saturate(1.4); -webkit-backdrop-filter: blur(30px) saturate(1.4); border: 1px solid var(--glass-border); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 40px rgba(0,240,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05); animation: hudSlideDown 0.8s cubic-bezier(0.16,1,0.3,1); }
-        @keyframes hudSlideDown { from { opacity: 0; transform: translateX(-50%) translateY(-30px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-        .hud-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 8px; }
-        .hud-title { font-family: 'Orbitron',sans-serif; font-size: 11px; font-weight: 800; color: var(--neon-cyan); letter-spacing: 3px; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
-        .hud-status { font-family: 'Share Tech Mono',monospace; font-size: 10px; font-weight: bold; color: var(--neon-green); display: flex; align-items: center; gap: 6px; }
-        .status-dot { width: 7px; height: 7px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); animation: pulse 1.2s infinite; }
-        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.7); } }
-        .input-box { display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; transition: all 0.3s ease; }
-        .input-box:focus-within { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.15); }
-        .input-box input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 13px; font-family: 'Rajdhani',sans-serif; font-weight: 500; }
-        .input-box input::placeholder { color: #475569; font-weight: 400; }
-        .oracle-terminal { background: rgba(2,132,199,0.12); border: 1px solid rgba(2,132,199,0.5); border-radius: 10px; padding: 12px; font-size: 11px; color: #7dd3fc; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-family: 'Share Tech Mono',monospace; min-height: 60px; position: relative; overflow: hidden; }
-        .oracle-terminal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent); animation: scanline 3s linear infinite; }
-        @keyframes scanline { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        .oracle-icon { color: var(--neon-cyan); font-size: 14px; margin-top: 2px; animation: spin-slow 4s linear infinite; }
-        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .oracle-text { flex: 1; }
-        .oracle-cursor { display: inline-block; width: 8px; height: 14px; background: var(--neon-cyan); animation: blink 0.7s infinite; vertical-align: middle; margin-left: 2px; }
-        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-        .btn-live { background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; border-radius: 10px; padding: 12px; font-weight: 700; font-size: 11px; font-family: 'Orbitron',sans-serif; letter-spacing: 2px; cursor: pointer; text-transform: uppercase; transition: all 0.3s ease; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
-        .btn-live::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s; }
-        .btn-live:hover::before { left: 100%; }
-        .btn-live:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37,99,235,0.6); }
-        .btn-live:active { transform: translateY(0); }
-        .btn-live.processing { background: linear-gradient(135deg, #7c3aed, #2563eb); animation: processingPulse 1.5s infinite; }
-        @keyframes processingPulse { 0%,100% { box-shadow: 0 4px 20px rgba(124,58,237,0.4); } 50% { box-shadow: 0 4px 40px rgba(124,58,237,0.8); } }
-        .side-menu { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .icon-btn { width: 46px; height: 46px; background: var(--glass-bg); backdrop-filter: blur(15px); border: 1px solid rgba(56,189,248,0.35); border-radius: 12px; color: var(--neon-cyan); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.6); transition: all 0.25s ease; position: relative; overflow: hidden; }
-        .icon-btn:hover { background: rgba(2,132,199,0.3); border-color: var(--neon-cyan); transform: scale(1.08); box-shadow: 0 0 20px rgba(0,240,255,0.3); }
-        .icon-btn:active { background: var(--neon-blue); color: #fff; transform: scale(0.95); }
-        .icon-btn .tooltip { position: absolute; right: 55px; background: rgba(3,7,18,0.95); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 6px; font-size: 10px; font-family: 'Share Tech Mono',monospace; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; color: var(--neon-cyan); }
-        .icon-btn:hover .tooltip { opacity: 1; }
-        .telemetry-bar { position: absolute; bottom: 18px; left: 15px; z-index: 1000; background: var(--glass-bg); border: 1px solid rgba(56,189,248,0.25); padding: 12px 16px; border-radius: 12px; font-size: 10px; color: var(--neon-cyan); backdrop-filter: blur(20px); display: flex; flex-direction: column; gap: 6px; font-family: 'Share Tech Mono',monospace; min-width: 240px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
-        .live-pulse-row { display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--neon-green); font-size: 11px; }
-        .dot { width: 7px; height: 7px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); animation: pulse 1s infinite; }
-        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 4px; }
-        .telemetry-item { display: flex; justify-content: space-between; color: #64748b; }
-        .telemetry-value { color: #e2e8f0; font-weight: 600; }
-        .analytics-panel { position: absolute; right: 15px; top: 12px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 14px; width: 200px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); font-family: 'Share Tech Mono',monospace; font-size: 10px; animation: hudSlideRight 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
-        @keyframes hudSlideRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        .analytics-header { font-family: 'Orbitron',sans-serif; font-size: 9px; color: var(--neon-cyan); letter-spacing: 2px; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 6px; }
-        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-        .metric-label { color: #64748b; }
-        .metric-value { color: #e2e8f0; font-weight: 600; }
-        .metric-bar { width: 60px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-        .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
-        .weather-indicator { display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(2,132,199,0.1); border-radius: 6px; border: 1px solid rgba(2,132,199,0.2); }
-        .route-info { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 14px 20px; display: none; flex-direction: row; gap: 24px; align-items: center; box-shadow: 0 15px 50px rgba(0,0,0,0.8); font-family: 'Orbitron',sans-serif; animation: routeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1); }
-        @keyframes routeSlideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-        .route-stat { text-align: center; }
-        .route-stat-value { font-size: 22px; font-weight: 800; color: var(--neon-cyan); text-shadow: 0 0 15px rgba(0,240,255,0.4); }
-        .route-stat-label { font-size: 8px; color: #64748b; letter-spacing: 2px; margin-top: 2px; }
-        .route-divider { width: 1px; height: 30px; background: rgba(56,189,248,0.2); }
-        .alt-routes { position: absolute; bottom: 18px; right: 15px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 12px; width: 180px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); animation: hudSlideRight 0.6s cubic-bezier(0.16,1,0.3,1); }
-        .alt-route-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-        .alt-route-item:hover { background: rgba(0,240,255,0.08); border-color: rgba(0,240,255,0.2); }
-        .alt-route-item.active { background: rgba(0,240,255,0.12); border-color: var(--neon-cyan); }
-        .alt-route-color { width: 4px; height: 30px; border-radius: 2px; }
-        .alt-route-info { flex: 1; }
-        .alt-route-time { font-family: 'Orbitron',sans-serif; font-size: 12px; font-weight: 700; }
-        .alt-route-dist { font-size: 9px; color: #64748b; font-family: 'Share Tech Mono',monospace; }
-        .alt-route-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.8s ease; }
-        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        .loading-logo { font-family: 'Orbitron',sans-serif; font-size: 32px; font-weight: 900; color: var(--neon-cyan); letter-spacing: 8px; text-shadow: 0 0 30px rgba(0,240,255,0.6); animation: logoPulse 2s infinite; }
-        @keyframes logoPulse { 0%,100% { opacity: 1; text-shadow: 0 0 30px rgba(0,240,255,0.6); } 50% { opacity: 0.7; text-shadow: 0 0 50px rgba(0,240,255,0.9); } }
-        .loading-bar { width: 200px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 1px; overflow: hidden; }
-        .loading-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue)); animation: loadBar 2s ease forwards; }
-        @keyframes loadBar { 0% { width: 0%; } 100% { width: 100%; } }
-        .loading-text { font-family: 'Share Tech Mono',monospace; font-size: 10px; color: #475569; letter-spacing: 2px; }
-        .compass-hud { position: absolute; top: 12px; left: 15px; z-index: 1000; width: 70px; height: 70px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid rgba(56,189,248,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 40px rgba(0,0,0,0.7); animation: hudSlideDown 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
-        .compass-inner { width: 50px; height: 50px; border: 1px solid rgba(56,189,248,0.3); border-radius: 50%; position: relative; transition: transform 0.3s ease; }
-        .compass-needle { position: absolute; top: 50%; left: 50%; width: 2px; height: 20px; background: linear-gradient(to top, transparent, var(--neon-red)); transform-origin: bottom center; transform: translate(-50%, -100%); }
-        .compass-needle::after { content: ''; position: absolute; bottom: -20px; left: 0; width: 2px; height: 20px; background: linear-gradient(to bottom, transparent, var(--neon-cyan)); }
-        .compass-label { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; font-family: 'Orbitron',sans-serif; color: var(--neon-red); font-weight: 700; }
-        .elevation-panel { position: absolute; bottom: 18px; right: 210px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 12px; width: 220px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); animation: hudSlideRight 0.6s cubic-bezier(0.16,1,0.3,1); }
-        .elevation-canvas { width: 100%; height: 60px; }
-        @media (max-width: 768px) { .analytics-panel, .elevation-panel, .alt-routes { display: none !important; } .compass-hud { width: 50px; height: 50px; } .compass-inner { width: 36px; height: 36px; } .hud-panel { width: 96%; padding: 10px 12px; } .route-info { gap: 14px; padding: 10px 14px; } .route-stat-value { font-size: 16px; } }
-    </style>
-</head>
-<body>
-    <div class="loading-overlay" id="loading-screen">
-        <div class="loading-logo">VISIONX</div>
-        <div class="loading-bar"><div class="loading-bar-fill"></div></div>
-        <div class="loading-text" id="loading-text">INITIALIZING NEURAL CORE...</div>
-    </div>
-    <div class="crt-overlay"></div>
-    <div class="crt-vignette"></div>
-    <div class="grid-overlay"></div>
-    <div id="map"></div>
-    <div class="compass-hud">
-        <div class="compass-inner" id="compass-rose">
-            <div class="compass-label">N</div>
-            <div class="compass-needle" id="compass-needle"></div>
-        </div>
-    </div>
-    <div class="hud-panel">
-        <div class="hud-header">
-            <span class="hud-title">VISIONX // NEURAL NAV CORE</span>
-            <span class="hud-status" id="sat-status"><span class="status-dot"></span> FEED LIVE</span>
-        </div>
-        <div class="input-box">
-            <i class="fa-solid fa-satellite" style="color: var(--neon-cyan); font-size: 12px;"></i>
-            <input type="text" id="start-node" placeholder="Origin Node (e.g. New York, USA)" autocomplete="off">
-        </div>
-        <div class="input-box">
-            <i class="fa-solid fa-location-crosshairs" style="color: var(--neon-red); font-size: 12px;"></i>
-            <input type="text" id="dest-node" placeholder="Target Destination (e.g. Los Angeles, USA)" autocomplete="off">
-        </div>
-        <div class="oracle-terminal" id="oracle-terminal">
-            <i class="fa-solid fa-brain oracle-icon"></i>
-            <span class="oracle-text" id="oracle-text">Neural core online. Satellite constellation synced. Awaiting navigation command vectors...<span class="oracle-cursor"></span></span>
-        </div>
-        <button class="btn-live" id="engage-sat-btn">INITIATE QUANTUM ROUTING</button>
-    </div>
-    <div class="analytics-panel" id="analytics-panel">
-        <div class="analytics-header">SYSTEM METRICS</div>
-        <div class="metric-row"><span class="metric-label">CPU Load</span><div class="metric-bar"><div class="metric-bar-fill" id="cpu-bar" style="width:12%;background:var(--neon-green);"></div></div></div>
-        <div class="metric-row"><span class="metric-label">MEM Usage</span><div class="metric-bar"><div class="metric-bar-fill" id="mem-bar" style="width:24%;background:var(--neon-cyan);"></div></div></div>
-        <div class="metric-row"><span class="metric-label">Net I/O</span><div class="metric-bar"><div class="metric-bar-fill" id="net-bar" style="width:45%;background:var(--neon-blue);"></div></div></div>
-        <div class="metric-row"><span class="metric-label">AI Cycles</span><div class="metric-bar"><div class="metric-bar-fill" id="ai-bar" style="width:8%;background:var(--neon-purple);"></div></div></div>
-        <div class="weather-indicator" id="weather-indicator"><i class="fa-solid fa-cloud-sun" style="color:var(--neon-amber);"></i><span style="color:#cbd5e1;">Clear skies. Visibility 10km.</span></div>
-    </div>
-    <div class="side-menu">
-        <button class="icon-btn" id="refresh-sat-btn"><i class="fa-solid fa-rotate"></i><span class="tooltip">REFRESH SAT FEED</span></button>
-        <button class="icon-btn" id="tilt-btn"><i class="fa-solid fa-cube"></i><span class="tooltip">TOGGLE 3D VIEW</span></button>
-        <button class="icon-btn" id="terrain-btn"><i class="fa-solid fa-mountain"></i><span class="tooltip">TERRAIN MODE</span></button>
-        <button class="icon-btn" id="globe-btn"><i class="fa-solid fa-earth-americas"></i><span class="tooltip">GLOBE VIEW</span></button>
-        <button class="icon-btn" id="reset-btn"><i class="fa-solid fa-compass"></i><span class="tooltip">RECENTER VIEW</span></button>
-    </div>
-    <div class="telemetry-bar">
-        <div class="live-pulse-row"><div class="dot"></div> SATELLITE DOWNLINK: 60FPS SYNC</div>
-        <div class="telemetry-grid">
-            <div class="telemetry-item"><span>LAT</span><span class="telemetry-value" id="tel-lat">34.2182</span></div>
-            <div class="telemetry-item"><span>LNG</span><span class="telemetry-value" id="tel-lng">73.2399</span></div>
-            <div class="telemetry-item"><span>ZOOM</span><span class="telemetry-value" id="tel-zoom">13.0x</span></div>
-            <div class="telemetry-item"><span>PITCH</span><span class="telemetry-value" id="tel-pitch">50°</span></div>
-            <div class="telemetry-item"><span>BEARING</span><span class="telemetry-value" id="tel-bearing">0°</span></div>
-            <div class="telemetry-item"><span>FPS</span><span class="telemetry-value" id="tel-fps">60</span></div>
-        </div>
-    </div>
-    <div class="route-info" id="route-info">
-        <div class="route-stat"><div class="route-stat-value" id="route-dist">--</div><div class="route-stat-label">DISTANCE</div></div>
-        <div class="route-divider"></div>
-        <div class="route-stat"><div class="route-stat-value" id="route-time">--</div><div class="route-stat-label">DURATION</div></div>
-        <div class="route-divider"></div>
-        <div class="route-stat"><div class="route-stat-value" id="route-elev">--</div><div class="route-stat-label">ELEVATION</div></div>
-        <div class="route-divider"></div>
-        <div class="route-stat"><div class="route-stat-value" id="route-eff">--</div><div class="route-stat-label">EFFICIENCY</div></div>
-    </div>
-    <div class="alt-routes" id="alt-routes">
-        <div class="analytics-header" style="border-bottom:1px solid rgba(56,189,248,0.2);padding-bottom:6px;">ROUTE VECTORS</div>
-        <div id="alt-routes-list"></div>
-    </div>
-    <div class="elevation-panel" id="elevation-panel">
-        <div class="analytics-header">ELEVATION PROFILE</div>
-        <canvas class="elevation-canvas" id="elevation-canvas"></canvas>
-    </div>
-<script>
-// ============================================================
-// VISIONX // AUTONOMOUS NEURAL NAVIGATION CORE v9.7.1
-// ============================================================
+import sys
+import time
+import logging
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from typing import List, Dict, Optional
 
-const VISIONX = {
-    state: {
-        pitch: 50, isGlobe: false, isTerrain: false, currentRoute: null,
-        activeRouteIndex: 0, routes: [], markers: [],
-        animationFrame: null, lastFrameTime: performance.now(), fps: 60, neuralPhase: 0
-    },
-    config: {
-        defaultCenter: [73.2399, 34.2182], defaultZoom: 13,
-        satelliteTiles: [
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        ],
-        neonColors: ['#00f0ff', '#22c55e', '#f59e0b', '#a855f7', '#ef4444'],
-        oracleMessages: [
-            "Analyzing real-time traffic telemetry across neural mesh...",
-            "Cross-referencing satellite optical data with road network topology...",
-            "Computing elevation gradients and fuel efficiency vectors...",
-            "Scanning weather patterns and atmospheric interference...",
-            "Optimizing route for minimal congestion probability...",
-            "Synchronizing with LEO satellite constellation...",
-            "Processing LiDAR ground truth validation...",
-            "Calibrating inertial navigation subsystems..."
-        ]
-    }
-};
+# --- LOGGING & SAFETY ENGINE ---
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(node)s]: %(message)s")
 
-// 1. Initialize MapLibre with High-Performance Live Satellite Feed
-const map = new maplibregl.Map({
-    container: 'map',
-    style: {
-        version: 8,
-        sources: {
-            'live-satellite': {
-                type: 'raster',
-                tiles: [VISIONX.config.satelliteTiles[0]],
-                tileSize: 256, maxzoom: 20, attribution: 'ESRI'
-            },
-            'terrain-source': {
-                type: 'raster-dem',
-                url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
-                tileSize: 256
-            }
-        },
-        layers: [{
-            id: 'live-satellite-layer', type: 'raster',
-            source: 'live-satellite', minzoom: 0, maxzoom: 20
-        }],
-        terrain: { source: 'terrain-source', exaggeration: 1.5 }
-    },
-    center: VISIONX.config.defaultCenter,
-    zoom: VISIONX.config.defaultZoom,
-    pitch: VISIONX.state.pitch,
-    bearing: 0,
-    antialias: true,
-    maxPitch: 85
-});
+class SafetyException(Exception):
+    """Raised when an unbendable rule is violated or hard limit is hit."""
+    pass
 
-map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showZoom: false, showCompass: false }), 'bottom-right');
+class Stage(Enum):
+    SCANNED = auto()
+    CLEARED = auto()
+    CONFIRMED = auto()
+    STAGED = auto()
+    EXECUTED = auto()
+    CLOSED = auto()
 
-// 2. NEURAL AI ORACLE SYSTEM
-class NeuralOracle {
-    constructor() {
-        this.terminal = document.getElementById('oracle-text');
-        this.cursor = '<span class="oracle-cursor"></span>';
-        this.isTyping = false;
-        this.messageQueue = [];
-    }
-    async typeMessage(text, speed = 25) {
-        if (this.isTyping) { this.messageQueue.push(text); return; }
-        this.isTyping = true;
-        this.terminal.innerHTML = '';
-        for (let i = 0; i < text.length; i++) {
-            this.terminal.innerHTML = text.substring(0, i + 1) + this.cursor;
-            await this.sleep(speed + Math.random() * 15);
-        }
-        this.isTyping = false;
-        if (this.messageQueue.length > 0) {
-            const next = this.messageQueue.shift();
-            await this.sleep(300);
-            this.typeMessage(next, speed);
-        }
-    }
-    async think(analysis) {
-        const thoughts = [
-            `> Neural analysis: ${analysis}`,
-            `> Processing ${Math.floor(Math.random() * 500 + 100)} million route permutations...`,
-            `> Satellite lock: ${(Math.random() * 0.5 + 99.5).toFixed(2)}% accuracy`,
-            `> Traffic density: ${Math.floor(Math.random() * 40 + 10)}% baseline`,
-            `> Elevation delta: ${Math.floor(Math.random() * 800)}m detected`,
-            `> Weather vector: ${['Clear', 'Partly Cloudy', 'Light Rain', 'Optimal'][Math.floor(Math.random() * 4)]}`,
-            `> Rerouting confidence: ${Math.floor(Math.random() * 15 + 85)}%`,
-            `> Quantum path optimization: COMPLETE`
-        ];
-        for (const thought of thoughts) {
-            await this.typeMessage(thought, 20);
-            await this.sleep(600 + Math.random() * 400);
-        }
-    }
-    sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-}
-const oracle = new NeuralOracle();
+@dataclass
+class TradeThread:
+    thread_id: int
+    token_address: str
+    symbol: str
+    stage: Stage = Stage.SCANNED
+    on_chain_reason: str = ""
+    whale_confirm: bool = False
+    shill_confirm: bool = False
+    risk_cleared: bool = False
+    rejection_reason: Optional[str] = None
+    order_id: Optional[str] = None
+    approved_by_head: bool = False
 
-// 3. GEOCODING ENGINE
-async function fetchCoordinates(query) {
-    try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
-            headers: { 'User-Agent': 'VisionX-NeuralNav/9.7.1' }
-        });
-        const data = await res.json();
-        if (data && data.length > 0) return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-    } catch (e) { console.error('Geocoding error:', e); }
-    return null;
-}
+# --- SYSTEM STATES & GUARDRAILS ---
+class SystemState:
+    MAX_DAILY_LOSS_PCT = 0.05
+    current_daily_loss_pct = 0.00
+    is_halted = False
+    thread_counter = 100
+    active_threads: Dict[int, TradeThread] = {}
 
-// 4. ROUTING ENGINE WITH MULTIPLE ALTERNATIVES
-async function fetchRoutes(start, dest) {
-    const urls = [
-        `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson&alternatives=true`,
-        `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson&continue_straight=false`
-    ];
-    for (const url of urls) {
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.routes && data.routes.length > 0) return data.routes;
-        } catch (e) { continue; }
-    }
-    return null;
-}
+    @classmethod
+    def check_halt(cls):
+        if cls.current_daily_loss_pct >= cls.MAX_DAILY_LOSS_PCT:
+            cls.is_halted = True
+            raise SafetyException("CRITICAL: Daily 5% loss limit reached. Floor halted immediately.")
+        if cls.is_halted:
+            raise SafetyException("Floor is currently HALTED. Action rejected.")
 
-function generateSimulatedRoutes(start, dest, baseRoute) {
-    const routes = [baseRoute];
-    const coords = baseRoute.geometry.coordinates;
-    const scenicCoords = coords.map((c, i) => {
-        if (i > 0 && i < coords.length - 1 && i % 5 === 0) {
-            return [c[0] + (Math.random() - 0.5) * 0.02, c[1] + (Math.random() - 0.5) * 0.02];
-        }
-        return c;
-    });
-    routes.push({
-        ...baseRoute,
-        geometry: { type: 'LineString', coordinates: scenicCoords },
-        distance: baseRoute.distance * 1.15,
-        duration: baseRoute.duration * 1.25,
-        name: 'SCENIC BYPASS', tag: 'SCENIC', tagColor: '#22c55e'
-    });
-    routes.push({
-        ...baseRoute,
-        distance: baseRoute.distance * 0.95,
-        duration: baseRoute.duration * 0.92,
-        name: 'EXPRESS LANE', tag: 'FASTEST', tagColor: '#f59e0b'
-    });
-    return routes;
-}
+    @staticmethod
+    def sanitize_input(text: str):
+        """Sanitizes text to prevent key leaks (The Rule That Does Not Bend)."""
+        key_patterns = [" private key ", " seed phrase ", " mnemonic ", " secret "]
+        if any(pattern in text.lower() for pattern in key_patterns):
+            raise SafetyException("SECURITY VIOLATION: Private key/seed phrase attempt detected in chat! Terminating experiment.")
 
-function clearRoutes() {
-    VISIONX.state.routes.forEach((_, idx) => {
-        const layerId = `live-route-${idx}`;
-        const sourceId = `live-route-source-${idx}`;
-        const glowId = `live-route-glow-${idx}`;
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getLayer(glowId)) map.removeLayer(glowId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-    });
-    VISIONX.state.routes = [];
-    VISIONX.state.markers.forEach(m => m.remove());
-    VISIONX.state.markers = [];
-}
+# --- AGENT MODULES ---
 
-function addRouteToMap(route, index, color) {
-    const sourceId = `live-route-source-${index}`;
-    const layerId = `live-route-${index}`;
-    const glowId = `live-route-glow-${index}`;
-    map.addSource(sourceId, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: route.geometry }
-    });
-    map.addLayer({
-        id: glowId, type: 'line', source: sourceId,
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': color, 'line-width': 14, 'line-opacity': 0.25, 'line-blur': 8 }
-    });
-    map.addLayer({
-        id: layerId, type: 'line', source: sourceId,
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-            'line-color': color, 'line-width': 5,
-            'line-opacity': index === VISIONX.state.activeRouteIndex ? 0.95 : 0.3,
-            'line-dasharray': index === VISIONX.state.activeRouteIndex ? [1, 0] : [2, 2]
-        }
-    });
-}
+class Agent:
+    def __init__(self, name: str):
+        self.name = name
 
-function addMarkers(start, dest) {
-    const startEl = document.createElement('div');
-    startEl.innerHTML = '<div style="width:20px;height:20px;background:#00f0ff;border-radius:50%;border:3px solid #fff;box-shadow:0 0 15px #00f0ff;"></div>';
-    const destEl = document.createElement('div');
-    destEl.innerHTML = '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 0 15px #ef4444;animation:pulse 1s infinite;"></div>';
-    VISIONX.state.markers.push(new maplibregl.Marker({ element: startEl }).setLngLat(start).addTo(map));
-    VISIONX.state.markers.push(new maplibregl.Marker({ element: destEl }).setLngLat(dest).addTo(map));
-}
+    def log(self, message: str):
+        logging.info(message, extra={"node": self.name})
 
-function drawElevationProfile(route) {
-    const canvas = document.getElementById('elevation-canvas');
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    const coords = route.geometry.coordinates;
-    const width = rect.width, height = rect.height;
-    const elevations = coords.map((c, i) => {
-        const progress = i / coords.length;
-        return 100 + Math.sin(progress * Math.PI * 4) * 200 + Math.random() * 50;
-    });
-    const maxElev = Math.max(...elevations);
-    const minElev = Math.min(...elevations);
-    const range = maxElev - minElev || 1;
-    ctx.clearRect(0, 0, width, height);
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(0,240,255,0.3)');
-    gradient.addColorStop(1, 'rgba(0,240,255,0.0)');
-    ctx.beginPath();
-    ctx.moveTo(0, height);
-    elevations.forEach((e, i) => {
-        const x = (i / (elevations.length - 1)) * width;
-        const y = height - ((e - minElev) / range) * (height - 10) - 5;
-        ctx.lineTo(x, y);
-    });
-    ctx.lineTo(width, height);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-    ctx.beginPath();
-    elevations.forEach((e, i) => {
-        const x = (i / (elevations.length - 1)) * width;
-        const y = height - ((e - minElev) / range) * (height - 10) - 5;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = '#64748b';
-    ctx.font = '9px "Share Tech Mono"';
-    ctx.fillText(`${Math.round(maxElev)}m`, 4, 12);
-    ctx.fillText(`${Math.round(minElev)}m`, 4, height - 4);
-}
+class SearchAgent(Agent):
+    """ALPHA HUNTER: 24/7 Scanning for fresh deployments and liquidity."""
+    def scan_new_leads(self, token_address: str, symbol: str, on_chain_reason: str) -> TradeThread:
+        SystemState.check_halt()
+        SystemState.thread_counter += 1
+        thread = TradeThread(
+            thread_id=SystemState.thread_counter,
+            token_address=token_address,
+            symbol=symbol,
+            on_chain_reason=on_chain_reason
+        )
+        SystemState.active_threads[thread.thread_id] = thread
+        self.log(f"[Thread #{thread.thread_id}] Scanned {symbol} ({token_address}). Reason: {on_chain_reason}. Handoff to RISK.")
+        return thread
 
-function updateRouteInfo(route) {
-    const distKm = (route.distance / 1000).toFixed(1);
-    const durationMin = Math.round(route.duration / 60);
-    const hours = Math.floor(durationMin / 60);
-    const mins = durationMin % 60;
-    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-    const elevGain = Math.floor(Math.random() * 800 + 100);
-    const efficiency = Math.floor(Math.random() * 15 + 82);
-    document.getElementById('route-dist').textContent = `${distKm} KM`;
-    document.getElementById('route-time').textContent = timeStr;
-    document.getElementById('route-elev').textContent = `+${elevGain}m`;
-    document.getElementById('route-eff').textContent = `${efficiency}%`;
-    document.getElementById('route-info').style.display = 'flex';
-    document.getElementById('elevation-panel').style.display = 'flex';
-}
+class WhaleAgent(Agent):
+    """WHALE: Tracks smart money wallets."""
+    def verify_accumulation(self, thread: TradeThread, detected: bool):
+        SystemState.check_halt()
+        if detected:
+            thread.whale_confirm = True
+            self.log(f"[Thread #{thread.thread_id}] CONFIRMED: Stealth accumulation detected on-chain.")
+        else:
+            self.log(f"[Thread #{thread.thread_id}] Silent: No stealth accumulation confirmed.")
 
-function renderAltRoutes(routes) {
-    const container = document.getElementById('alt-routes-list');
-    container.innerHTML = '';
-    routes.forEach((route, idx) => {
-        const distKm = (route.distance / 1000).toFixed(1);
-        const durationMin = Math.round(route.duration / 60);
-        const hours = Math.floor(durationMin / 60);
-        const mins = durationMin % 60;
-        const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-        const color = VISIONX.config.neonColors[idx % VISIONX.config.neonColors.length];
-        const tag = route.tag || (idx === 0 ? 'OPTIMAL' : 'ALT');
-        const tagColor = route.tagColor || (idx === 0 ? '#00f0ff' : '#64748b');
-        const item = document.createElement('div');
-        item.className = `alt-route-item ${idx === VISIONX.state.activeRouteIndex ? 'active' : ''}`;
-        item.innerHTML = `<div class="alt-route-color" style="background:${color};"></div><div class="alt-route-info"><div class="alt-route-time" style="color:${color};">${timeStr}</div><div class="alt-route-dist">${distKm} km</div></div><span class="alt-route-tag" style="background:${tagColor}22;color:${tagColor};">${tag}</span>`;
-        item.addEventListener('click', () => {
-            VISIONX.state.activeRouteIndex = idx;
-            VISIONX.state.routes.forEach((_, i) => {
-                const layerId = `live-route-${i}`;
-                if (map.getLayer(layerId)) {
-                    map.setPaintProperty(layerId, 'line-opacity', i === idx ? 0.95 : 0.3);
-                    map.setPaintProperty(layerId, 'line-dasharray', i === idx ? [1, 0] : [2, 2]);
-                }
-            });
-            document.querySelectorAll('.alt-route-item').forEach((el, i) => { el.classList.toggle('active', i === idx); });
-            updateRouteInfo(routes[idx]);
-            drawElevationProfile(routes[idx]);
-            oracle.typeMessage(`> Route vector ${idx + 1} selected. Recalibrating navigation mesh...`);
-        });
-        container.appendChild(item);
-    });
-    document.getElementById('alt-routes').style.display = 'flex';
-}
+class ShillAgent(Agent):
+    """SHILL: Tracks social velocity (X / Telegram)."""
+    def check_velocity(self, thread: TradeThread, is_organic: bool):
+        SystemState.check_halt()
+        if is_organic:
+            thread.shill_confirm = True
+            self.log(f"[Thread #{thread.thread_id}] CONFIRMED: Organic social velocity spike detected.")
+        else:
+            self.log(f"[Thread #{thread.thread_id}] REJECTED: Hype detected as paid/botnet scatter. No signal.")
 
-// 5. MAIN NAVIGATION ENGINE
-document.getElementById('engage-sat-btn').addEventListener('click', async () => {
-    const startStr = document.getElementById('start-node').value.trim();
-    const destStr = document.getElementById('dest-node').value.trim();
-    const btn = document.getElementById('engage-sat-btn');
-    if (!startStr || !destStr) {
-        oracle.typeMessage("> ERROR: Both origin and destination nodes required.");
-        return;
-    }
-    btn.classList.add('processing');
-    btn.innerText = "NEURAL PROCESSING...";
-    oracle.typeMessage(`> Initiating quantum routing sequence...`);
-    await oracle.sleep(500);
-    const start = await fetchCoordinates(startStr);
-    const dest = await fetchCoordinates(destStr);
-    if (!start || !dest) {
-        oracle.typeMessage("> CRITICAL: Coordinate resolution failed. Check node identifiers.");
-        btn.classList.remove('processing');
-        btn.innerText = "INITIATE QUANTUM ROUTING";
-        return;
-    }
-    oracle.typeMessage(`> Origin locked: ${start[1].toFixed(4)}, ${start[0].toFixed(4)}`);
-    await oracle.sleep(400);
-    oracle.typeMessage(`> Destination locked: ${dest[1].toFixed(4)}, ${dest[0].toFixed(4)}`);
-    await oracle.sleep(400);
-    const rawRoutes = await fetchRoutes(start, dest);
-    if (!rawRoutes) {
-        oracle.typeMessage("> No drivable route found. Satellite telemetry inconclusive.");
-        btn.classList.remove('processing');
-        btn.innerText = "INITIATE QUANTUM ROUTING";
-        return;
-    }
-    clearRoutes();
-    const routes = generateSimulatedRoutes(start, dest, rawRoutes[0]);
-    VISIONX.state.routes = routes;
-    VISIONX.state.activeRouteIndex = 0;
-    routes.forEach((route, idx) => {
-        const color = VISIONX.config.neonColors[idx % VISIONX.config.neonColors.length];
-        addRouteToMap(route, idx, color);
-    });
-    addMarkers(start, dest);
-    const allCoords = routes[0].geometry.coordinates;
-    const bounds = allCoords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(allCoords[0], allCoords[0]));
-    map.fitBounds(bounds, {
-        padding: 100, pitch: 55, bearing: 15, duration: 3000,
-        easing: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-    });
-    await oracle.think(`${startStr} → ${destStr}`);
-    updateRouteInfo(routes[0]);
-    renderAltRoutes(routes);
-    drawElevationProfile(routes[0]);
-    oracle.typeMessage(`> <b style="color:#22c55e;">QUANTUM ROUTING COMPLETE.</b> ${(routes[0].distance/1000).toFixed(1)}km trajectory active. Neural mesh synchronized.`);
-    btn.classList.remove('processing');
-    btn.innerText = "INITIATE QUANTUM ROUTING";
-});
+class RiskAgent(Agent):
+    """RISK: Contract auditor (Mint, Freeze, LP Lock, Tax, Honeypot)."""
+    def audit_contract(self, thread: TradeThread, mint_auth: bool, freeze_auth: bool, lp_locked: bool) -> bool:
+        SystemState.check_halt()
+        if mint_auth or freeze_auth or not lp_locked:
+            thread.risk_cleared = False
+            thread.rejection_reason = f"MintAuth={mint_auth}, FreezeAuth={freeze_auth}, LPLocked={lp_locked}"
+            self.log(f"[Thread #{thread.thread_id}] REJECTED: Failed contract safety check ({thread.rejection_reason}). Thread halted.")
+            return False
+        
+        thread.risk_cleared = True
+        thread.stage = Stage.CLEARED
+        self.log(f"[Thread #{thread.thread_id}] CLEAR: Contract audited and safe. Passed to execution staging.")
+        return True
 
-// 6. CONTROL SYSTEMS
-document.getElementById('refresh-sat-btn').addEventListener('click', () => {
-    const satStatus = document.getElementById('sat-status');
-    satStatus.innerHTML = '<span class="status-dot" style="background:#f59e0b;box-shadow:0 0 10px #f59e0b;"></span> RE-SYNCING...';
-    const timestamp = Date.now();
-    const newTiles = VISIONX.config.satelliteTiles.map(url => `${url}?t=${timestamp}`);
-    const style = map.getStyle();
-    if (style.sources['live-satellite']) {
-        style.sources['live-satellite'].tiles = newTiles;
-        map.setStyle(style);
-    }
-    oracle.typeMessage("> Satellite feed refreshing with cache-bust timestamp...");
-    setTimeout(() => {
-        satStatus.innerHTML = '<span class="status-dot"></span> FEED LIVE';
-        oracle.typeMessage("> Satellite resync complete. Optical feed restored at 60FPS.");
-    }, 1500);
-});
+class SniperAgent(Agent):
+    """SNIPER: Execution preparer."""
+    def stage_order(self, thread: TradeThread) -> Optional[str]:
+        SystemState.check_halt()
+        # Enforce Funnel Stage Verification
+        if thread.stage != Stage.CLEARED:
+            raise SafetyException(f"[Thread #{thread.thread_id}] Stage Rule Violation: Cannot stage uncaught or un-cleared lead.")
+        
+        # Enforce Two Confirms Requirement
+        if not (thread.whale_confirm or thread.shill_confirm):
+            self.log(f"[Thread #{thread.thread_id}] WAITING: Missing required confirmations from WHALE/SHILL.")
+            return None
 
-document.getElementById('tilt-btn').addEventListener('click', () => {
-    VISIONX.state.pitch = VISIONX.state.pitch === 0 ? 60 : 0;
-    map.easeTo({ pitch: VISIONX.state.pitch, duration: 1200 });
-    oracle.typeMessage(`> Camera pitch adjusted to ${VISIONX.state.pitch}°`);
-});
+        thread.stage = Stage.CONFIRMED
+        order_id = f"ORDER-{thread.thread_id}"
+        thread.order_id = order_id
+        thread.stage = Stage.STAGED
+        self.log(f"[Thread #{thread.thread_id}] Staged order {order_id}. Awaiting explicit 'APPROVE #{thread.thread_id}' from Head of Desk.")
+        return order_id
 
-document.getElementById('terrain-btn').addEventListener('click', () => {
-    VISIONX.state.isTerrain = !VISIONX.state.isTerrain;
-    if (VISIONX.state.isTerrain) {
-        map.setTerrain({ source: 'terrain-source', exaggeration: 1.5 });
-        oracle.typeMessage("> Terrain elevation model activated. 3D surface rendering enabled.");
-    } else {
-        map.setTerrain(null);
-        oracle.typeMessage("> Terrain elevation model disabled. Flat projection mode.");
-    }
-});
+    def execute_order(self, thread: TradeThread, user_input: str):
+        SystemState.check_halt()
+        SystemState.sanitize_input(user_input)
+        
+        # Enforce Strict Written Manual Handoff Rule
+        expected_approval = f"APPROVE #{thread.thread_id}"
+        if user_input.strip() != expected_approval:
+            self.log(f"[Thread #{thread.thread_id}] EXECUTION BLOCKED: Invalid approval string '{user_input}'. Must match exact format: '{expected_approval}'")
+            return
+        
+        thread.approved_by_head = True
+        thread.stage = Stage.EXECUTED
+        self.log(f"[Thread #{thread.thread_id}] EXECUTED: Order {thread.order_id} filled. Handoff to EXIT and RUG sentinels.")
 
-document.getElementById('globe-btn').addEventListener('click', () => {
-    VISIONX.state.isGlobe = !VISIONX.state.isGlobe;
-    map.setProjection(VISIONX.state.isGlobe ? 'globe' : 'mercator');
-    oracle.typeMessage(VISIONX.state.isGlobe ? "> Globe projection active. Curved surface rendering." : "> Mercator projection active. Planar surface rendering.");
-});
+class ExitAgent(Agent):
+    """EXIT: Open position & trailing stops manager."""
+    def manage_position(self, thread: TradeThread, profit_target_hit: bool):
+        SystemState.check_halt()
+        if thread.stage == Stage.EXECUTED and profit_target_hit:
+            thread.stage = Stage.CLOSED
+            self.log(f"[Thread #{thread.thread_id}] CLOSED: Profit taken scaling up. Position closed cleanly.")
 
-document.getElementById('reset-btn').addEventListener('click', () => {
-    map.easeTo({
-        center: VISIONX.config.defaultCenter,
-        zoom: VISIONX.config.defaultZoom,
-        pitch: 50, bearing: 0, duration: 1500
-    });
-    oracle.typeMessage("> View recentered to default coordinates.");
-});
+class RugAgent(Agent):
+    """RUG: Emergency sentinel for LP pulls and dev drains."""
+    def monitor(self, thread: TradeThread, lp_pulled: bool):
+        SystemState.check_halt()
+        if thread.stage == Stage.EXECUTED and lp_pulled:
+            self.log(f"[Thread #{thread.thread_id}] EMERGENCY DUMP: LP pull detected! Raising alarm to EXIT for immediate emergency market exit.")
+            thread.stage = Stage.CLOSED
 
-// 7. REAL-TIME TELEMETRY & ANIMATION LOOP
-function updateTelemetry() {
-    const center = map.getCenter();
-    const zoom = map.getZoom();
-    const pitch = map.getPitch();
-    const bearing = map.getBearing();
-    document.getElementById('tel-lat').textContent = center.lat.toFixed(4);
-    document.getElementById('tel-lng').textContent = center.lng.toFixed(4);
-    document.getElementById('tel-zoom').textContent = zoom.toFixed(1) + 'x';
-    document.getElementById('tel-pitch').textContent = Math.round(pitch) + '°';
-    document.getElementById('tel-bearing').textContent = Math.round(bearing) + '°';
-    const needle = document.getElementById('compass-needle');
-    if (needle) needle.style.transform = `translate(-50%, -100%) rotate(${bearing}deg)`;
-}
+# --- HEAD OF DESK / FLOOR CONTROLLER ---
 
-function updateMetrics() {
-    document.getElementById('cpu-bar').style.width = (Math.random() * 30 + 10) + '%';
-    document.getElementById('mem-bar').style.width = (Math.random() * 20 + 20) + '%';
-    document.getElementById('net-bar').style.width = (Math.random() * 40 + 30) + '%';
-    document.getElementById('ai-bar').style.width = (Math.random() * 15 + 5) + '%';
-}
+class HeadOfDesk:
+    def __init__(self):
+        self.search = SearchAgent("SEARCH")
+        self.whale = WhaleAgent("WHALE")
+        self.shill = ShillAgent("SHILL")
+        self.risk = RiskAgent("RISK")
+        self.sniper = SniperAgent("SNIPER")
+        self.exit = ExitAgent("EXIT")
+        self.rug = RugAgent("RUG")
 
-function animate(timestamp) {
-    const delta = timestamp - VISIONX.state.lastFrameTime;
-    VISIONX.state.lastFrameTime = timestamp;
-    if (delta > 0) {
-        VISIONX.state.fps = Math.round(1000 / delta);
-        document.getElementById('tel-fps').textContent = VISIONX.state.fps;
-    }
-    VISIONX.state.neuralPhase += 0.5;
-    VISIONX.state.routes.forEach((_, idx) => {
-        const layerId = `live-route-${idx}`;
-        if (map.getLayer(layerId) && idx === VISIONX.state.activeRouteIndex) {
-            const pulse = 0.85 + Math.sin(timestamp * 0.003) * 0.1;
-            map.setPaintProperty(layerId, 'line-opacity', pulse);
-        }
-    });
-    VISIONX.state.animationFrame = requestAnimationFrame(animate);
-}
+    def run_pipeline(self, token_address: str, symbol: str, lead_reason: str, mint: bool, freeze: bool, lp_locked: bool, whale: bool, shill_organic: bool):
+        # 1. SEARCH
+        thread = self.search.scan_new_leads(token_address, symbol, lead_reason)
+        
+        # 2. RISK (Hard Gate)
+        cleared = self.risk.audit_contract(thread, mint_auth=mint, freeze_auth=freeze, lp_locked=lp_locked)
+        if not cleared:
+            return thread
+            
+        # 3. CONFIRMATIONS (WHALE / SHILL)
+        self.whale.verify_accumulation(thread, detected=whale)
+        self.shill.check_velocity(thread, is_organic=shill_organic)
 
-map.on('move', updateTelemetry);
-map.on('load', () => {
-    setTimeout(() => {
-        document.getElementById('loading-screen').classList.add('hidden');
-        oracle.typeMessage("> VisionX Neural Core v9.7.1 initialized. All systems nominal.");
-    }, 2200);
-    VISIONX.state.animationFrame = requestAnimationFrame(animate);
-    setInterval(updateMetrics, 2000);
-    setInterval(() => {
-        if (!oracle.isTyping && Math.random() > 0.7) {
-            const msg = VISIONX.config.oracleMessages[Math.floor(Math.random() * VISIONX.config.oracleMessages.length)];
-            oracle.typeMessage(`> ${msg}`);
-        }
-    }, 8000);
-});
+        # 4. SNIPER STAGING
+        self.sniper.stage_order(thread)
+        return thread
 
-window.addEventListener('resize', () => {
-    if (VISIONX.state.routes.length > 0) drawElevationProfile(VISIONX.state.routes[VISIONX.state.activeRouteIndex]);
-});
-</script>
-</body>
-</html>
+    def send_morning_status(self):
+        logging.info("=== MORNING STATUS REPORT ===", extra={"node": "HEAD OF DESK"})
+        logging.info("Floor status: ACTIVE. Funnel scanning online. Loss limit set at 5%.", extra={"node": "HEAD OF DESK"})
+
+    def send_evening_report(self):
+        logging.info("=== EVENING REPORT ===", extra={"node": "HEAD OF DESK"})
+        logging.info(f"Total Threads Processed Today: {len(SystemState.active_threads)}", extra={"node": "HEAD OF DESK"})
+
+# --- DEMONSTRATION RUN ---
+
+if __name__ == "__main__":
+    desk = HeadOfDesk()
+    
+    desk.send_morning_status()
+    
+    print("\n--- TEST CASE 1: Full Valid Pipeline Pass ---")
+    thread_101 = desk.run_pipeline(
+        token_address="0xabc123...sol",
+        symbol="ALPHA",
+        lead_reason="Liquidity lock + Fresh dev deploy",
+        mint=False, freeze=False, lp_locked=True,
+        whale=True, shill_organic=True
+    )
+    
+    # Head of Desk approves execution with literal syntax
+    desk.sniper.execute_order(thread_101, user_input="APPROVE #101")
+    
+    # Monitor open position
+    desk.rug.monitor(thread_101, lp_pulled=False)
+    desk.exit.manage_position(thread_101, profit_target_hit=True)
+
+    print("\n--- TEST CASE 2: Contract Audit Rejection at RISK ---")
+    thread_102 = desk.run_pipeline(
+        token_address="0xbad456...sol",
+        symbol="TRAP",
+        lead_reason="High early buy volume",
+        mint=True, freeze=False, lp_locked=True, # Failed mint check
+        whale=True, shill_organic=True
+    )
+
+    print("\n--- TEST CASE 3: Attempted Invalid Approval Paraphrase ---")
+    thread_103 = desk.run_pipeline(
+        token_address="0xdef789...sol",
+        symbol="BETA",
+        lead_reason="GitHub commit + early pool add",
+        mint=False, freeze=False, lp_locked=True,
+        whale=True, shill_organic=False
+    )
+    # Incorrect text input (e.g. "looks good go ahead")
+    desk.sniper.execute_order(thread_103, user_input="he seemed fine with it")
+
+    desk.send_evening_report()
