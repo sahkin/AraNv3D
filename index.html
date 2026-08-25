@@ -1,249 +1,824 @@
-import sys
-import time
-import logging
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import List, Dict, Optional
 
-# --- LOGGING & SAFETY ENGINE ---
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(node)s]: %(message)s")
+# Let me construct the complete perfect VisionX HTML code
+# I'll write it to a file so I can verify the length and structure
 
-class SafetyException(Exception):
-    """Raised when an unbendable rule is violated or hard limit is hit."""
-    pass
+visionx_code = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VisionX // Autonomous Neural Navigation Core v9.7.1</title>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+        :root { --neon-cyan: #00f0ff; --neon-blue: #2563eb; --neon-green: #22c55e; --neon-red: #ef4444; --neon-amber: #f59e0b; --neon-purple: #a855f7; --bg-deep: #020617; --glass-bg: rgba(3,7,18,0.88); --glass-border: rgba(56,189,248,0.35); }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: 'Rajdhani',sans-serif; }
+        #map { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        .crt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.08) 50%); background-size: 100% 4px; opacity: 0.4; }
+        .crt-vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1999; background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%); }
+        .grid-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1500; background-image: linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px); background-size: 80px 80px; opacity: 0.6; }
+        .hud-panel { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 94%; max-width: 520px; background: var(--glass-bg); backdrop-filter: blur(30px) saturate(1.4); -webkit-backdrop-filter: blur(30px) saturate(1.4); border: 1px solid var(--glass-border); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 40px rgba(0,240,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05); animation: hudSlideDown 0.8s cubic-bezier(0.16,1,0.3,1); }
+        @keyframes hudSlideDown { from { opacity: 0; transform: translateX(-50%) translateY(-30px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .hud-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 8px; }
+        .hud-title { font-family: 'Orbitron',sans-serif; font-size: 11px; font-weight: 800; color: var(--neon-cyan); letter-spacing: 3px; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+        .hud-status { font-family: 'Share Tech Mono',monospace; font-size: 10px; font-weight: bold; color: var(--neon-green); display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 7px; height: 7px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.7); } }
+        .input-box { display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; transition: all 0.3s ease; }
+        .input-box:focus-within { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.15); }
+        .input-box input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 13px; font-family: 'Rajdhani',sans-serif; font-weight: 500; }
+        .input-box input::placeholder { color: #475569; font-weight: 400; }
+        .oracle-terminal { background: rgba(2,132,199,0.12); border: 1px solid rgba(2,132,199,0.5); border-radius: 10px; padding: 12px; font-size: 11px; color: #7dd3fc; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-family: 'Share Tech Mono',monospace; min-height: 60px; position: relative; overflow: hidden; }
+        .oracle-terminal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent); animation: scanline 3s linear infinite; }
+        @keyframes scanline { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .oracle-icon { color: var(--neon-cyan); font-size: 14px; margin-top: 2px; animation: spin-slow 4s linear infinite; }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .oracle-text { flex: 1; }
+        .oracle-cursor { display: inline-block; width: 8px; height: 14px; background: var(--neon-cyan); animation: blink 0.7s infinite; vertical-align: middle; margin-left: 2px; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        .btn-live { background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; border-radius: 10px; padding: 12px; font-weight: 700; font-size: 11px; font-family: 'Orbitron',sans-serif; letter-spacing: 2px; cursor: pointer; text-transform: uppercase; transition: all 0.3s ease; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
+        .btn-live::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s; }
+        .btn-live:hover::before { left: 100%; }
+        .btn-live:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37,99,235,0.6); }
+        .btn-live:active { transform: translateY(0); }
+        .btn-live.processing { background: linear-gradient(135deg, #7c3aed, #2563eb); animation: processingPulse 1.5s infinite; }
+        @keyframes processingPulse { 0%,100% { box-shadow: 0 4px 20px rgba(124,58,237,0.4); } 50% { box-shadow: 0 4px 40px rgba(124,58,237,0.8); } }
+        .side-menu { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .icon-btn { width: 46px; height: 46px; background: var(--glass-bg); backdrop-filter: blur(15px); border: 1px solid rgba(56,189,248,0.35); border-radius: 12px; color: var(--neon-cyan); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.6); transition: all 0.25s ease; position: relative; overflow: hidden; }
+        .icon-btn:hover { background: rgba(2,132,199,0.3); border-color: var(--neon-cyan); transform: scale(1.08); box-shadow: 0 0 20px rgba(0,240,255,0.3); }
+        .icon-btn:active { background: var(--neon-blue); color: #fff; transform: scale(0.95); }
+        .icon-btn .tooltip { position: absolute; right: 55px; background: rgba(3,7,18,0.95); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 6px; font-size: 10px; font-family: 'Share Tech Mono',monospace; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; color: var(--neon-cyan); }
+        .icon-btn:hover .tooltip { opacity: 1; }
+        .telemetry-bar { position: absolute; bottom: 18px; left: 15px; z-index: 1000; background: var(--glass-bg); border: 1px solid rgba(56,189,248,0.25); padding: 12px 16px; border-radius: 12px; font-size: 10px; color: var(--neon-cyan); backdrop-filter: blur(20px); display: flex; flex-direction: column; gap: 6px; font-family: 'Share Tech Mono',monospace; min-width: 240px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
+        .live-pulse-row { display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--neon-green); font-size: 11px; }
+        .dot { width: 7px; height: 7px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); animation: pulse 1s infinite; }
+        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 4px; }
+        .telemetry-item { display: flex; justify-content: space-between; color: #64748b; }
+        .telemetry-value { color: #e2e8f0; font-weight: 600; }
+        .analytics-panel { position: absolute; right: 15px; top: 12px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 14px; width: 200px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); font-family: 'Share Tech Mono',monospace; font-size: 10px; animation: hudSlideRight 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
+        @keyframes hudSlideRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        .analytics-header { font-family: 'Orbitron',sans-serif; font-size: 9px; color: var(--neon-cyan); letter-spacing: 2px; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 6px; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+        .metric-label { color: #64748b; }
+        .metric-value { color: #e2e8f0; font-weight: 600; }
+        .metric-bar { width: 60px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+        .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+        .weather-indicator { display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(2,132,199,0.1); border-radius: 6px; border: 1px solid rgba(2,132,199,0.2); }
+        .route-info { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 14px 20px; display: none; flex-direction: row; gap: 24px; align-items: center; box-shadow: 0 15px 50px rgba(0,0,0,0.8); font-family: 'Orbitron',sans-serif; animation: routeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1); }
+        @keyframes routeSlideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .route-stat { text-align: center; }
+        .route-stat-value { font-size: 22px; font-weight: 800; color: var(--neon-cyan); text-shadow: 0 0 15px rgba(0,240,255,0.4); }
+        .route-stat-label { font-size: 8px; color: #64748b; letter-spacing: 2px; margin-top: 2px; }
+        .route-divider { width: 1px; height: 30px; background: rgba(56,189,248,0.2); }
+        .alt-routes { position: absolute; bottom: 18px; right: 15px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 12px; width: 180px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); animation: hudSlideRight 0.6s cubic-bezier(0.16,1,0.3,1); }
+        .alt-route-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .alt-route-item:hover { background: rgba(0,240,255,0.08); border-color: rgba(0,240,255,0.2); }
+        .alt-route-item.active { background: rgba(0,240,255,0.12); border-color: var(--neon-cyan); }
+        .alt-route-color { width: 4px; height: 30px; border-radius: 2px; }
+        .alt-route-info { flex: 1; }
+        .alt-route-time { font-family: 'Orbitron',sans-serif; font-size: 12px; font-weight: 700; }
+        .alt-route-dist { font-size: 9px; color: #64748b; font-family: 'Share Tech Mono',monospace; }
+        .alt-route-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.8s ease; }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        .loading-logo { font-family: 'Orbitron',sans-serif; font-size: 32px; font-weight: 900; color: var(--neon-cyan); letter-spacing: 8px; text-shadow: 0 0 30px rgba(0,240,255,0.6); animation: logoPulse 2s infinite; }
+        @keyframes logoPulse { 0%,100% { opacity: 1; text-shadow: 0 0 30px rgba(0,240,255,0.6); } 50% { opacity: 0.7; text-shadow: 0 0 50px rgba(0,240,255,0.9); } }
+        .loading-bar { width: 200px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 1px; overflow: hidden; }
+        .loading-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue)); animation: loadBar 2s ease forwards; }
+        @keyframes loadBar { 0% { width: 0%; } 100% { width: 100%; } }
+        .loading-text { font-family: 'Share Tech Mono',monospace; font-size: 10px; color: #475569; letter-spacing: 2px; }
+        .compass-hud { position: absolute; top: 12px; left: 15px; z-index: 1000; width: 70px; height: 70px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid rgba(56,189,248,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 40px rgba(0,0,0,0.7); animation: hudSlideDown 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
+        .compass-inner { width: 50px; height: 50px; border: 1px solid rgba(56,189,248,0.3); border-radius: 50%; position: relative; transition: transform 0.3s ease; }
+        .compass-needle { position: absolute; top: 50%; left: 50%; width: 2px; height: 20px; background: linear-gradient(to top, transparent, var(--neon-red)); transform-origin: bottom center; transform: translate(-50%, -100%); }
+        .compass-needle::after { content: ''; position: absolute; bottom: -20px; left: 0; width: 2px; height: 20px; background: linear-gradient(to bottom, transparent, var(--neon-cyan)); }
+        .compass-label { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; font-family: 'Orbitron',sans-serif; color: var(--neon-red); font-weight: 700; }
+        .elevation-panel { position: absolute; bottom: 18px; right: 210px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid rgba(56,189,248,0.25); border-radius: 14px; padding: 12px; width: 220px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); animation: hudSlideRight 0.6s cubic-bezier(0.16,1,0.3,1); }
+        .elevation-canvas { width: 100%; height: 60px; }
+        .route-progress { position: absolute; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green)); z-index: 3000; width: 0%; transition: width 0.3s ease; box-shadow: 0 0 10px var(--neon-cyan); }
+        .glitch-text { position: relative; }
+        .glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .glitch-text::before { left: 2px; text-shadow: -1px 0 var(--neon-red); clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-1 2s infinite linear alternate-reverse; }
+        .glitch-text::after { left: -2px; text-shadow: -1px 0 var(--neon-cyan); clip: rect(85px, 550px, 140px, 0); animation: glitch-anim-2 2s infinite linear alternate-reverse; }
+        @keyframes glitch-anim-1 { 0% { clip: rect(20px, 9999px, 15px, 0); } 20% { clip: rect(50px, 9999px, 80px, 0); } 40% { clip: rect(10px, 9999px, 55px, 0); } 60% { clip: rect(70px, 9999px, 90px, 0); } 80% { clip: rect(30px, 9999px, 40px, 0); } 100% { clip: rect(60px, 9999px, 20px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(60px, 9999px, 20px, 0); } 20% { clip: rect(10px, 9999px, 55px, 0); } 40% { clip: rect(70px, 9999px, 90px, 0); } 60% { clip: rect(30px, 9999px, 40px, 0); } 80% { clip: rect(50px, 9999px, 80px, 0); } 100% { clip: rect(20px, 9999px, 15px, 0); } }
+        .marker-origin { width: 20px; height: 20px; background: var(--neon-cyan); border-radius: 50%; border: 3px solid rgba(0,240,255,0.3); box-shadow: 0 0 20px var(--neon-cyan); animation: markerPulse 2s infinite; }
+        .marker-dest { width: 20px; height: 20px; background: var(--neon-red); border-radius: 50%; border: 3px solid rgba(239,68,68,0.3); box-shadow: 0 0 20px var(--neon-red); animation: markerPulse 2s infinite; }
+        @keyframes markerPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } }
+        .maplibregl-ctrl-logo { filter: invert(1) brightness(2) hue-rotate(180deg); }
+        .maplibregl-ctrl-attrib { background: rgba(0,0,0,0.7) !important; color: #64748b !important; font-family: 'Share Tech Mono',monospace !important; font-size: 9px !important; }
+        .maplibregl-ctrl-attrib a { color: var(--neon-cyan) !important; }
+        @media (max-width: 768px) { .analytics-panel, .elevation-panel, .alt-routes { display: none !important; } .compass-hud { width: 50px; height: 50px; } .compass-inner { width: 36px; height: 36px; } .hud-panel { width: 96%; padding: 10px 12px; } .route-info { gap: 14px; padding: 10px 14px; } .route-stat-value { font-size: 16px; } .side-menu { right: 10px; gap: 8px; } .icon-btn { width: 40px; height: 40px; font-size: 14px; } .telemetry-bar { min-width: 180px; font-size: 9px; bottom: 10px; left: 10px; } }
+    </style>
+</head>
+<body>
+    <div class="route-progress" id="route-progress"></div>
+    <div class="loading-overlay" id="loading-screen">
+        <div class="loading-logo glitch-text" data-text="VISIONX">VISIONX</div>
+        <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+        <div class="loading-text" id="loading-text">INITIALIZING NEURAL CORE...</div>
+    </div>
+    <div class="crt-overlay"></div>
+    <div class="crt-vignette"></div>
+    <div class="grid-overlay"></div>
+    <div id="map"></div>
+    <div class="compass-hud">
+        <div class="compass-inner" id="compass-rose">
+            <div class="compass-label">N</div>
+            <div class="compass-needle" id="compass-needle"></div>
+        </div>
+    </div>
+    <div class="hud-panel">
+        <div class="hud-header">
+            <span class="hud-title">VISIONX // NEURAL NAV CORE</span>
+            <span class="hud-status" id="sat-status"><span class="status-dot"></span> FEED LIVE</span>
+        </div>
+        <div class="input-box">
+            <i class="fa-solid fa-satellite" style="color: var(--neon-cyan); font-size: 12px;"></i>
+            <input type="text" id="start-node" placeholder="Origin Node (e.g. New York, USA)" autocomplete="off">
+        </div>
+        <div class="input-box">
+            <i class="fa-solid fa-location-crosshairs" style="color: var(--neon-red); font-size: 12px;"></i>
+            <input type="text" id="dest-node" placeholder="Target Destination (e.g. Los Angeles, USA)" autocomplete="off">
+        </div>
+        <div class="oracle-terminal" id="oracle-terminal">
+            <i class="fa-solid fa-brain oracle-icon"></i>
+            <span class="oracle-text" id="oracle-text"><span class="oracle-cursor"></span></span>
+        </div>
+        <button class="btn-live" id="engage-sat-btn">INITIATE QUANTUM ROUTING</button>
+    </div>
+    <div class="analytics-panel" id="analytics-panel">
+        <div class="analytics-header">SYSTEM METRICS</div>
+        <div class="metric-row"><span class="metric-label">CPU Load</span><div class="metric-bar"><div class="metric-bar-fill" id="cpu-bar" style="width:12%;background:var(--neon-green);"></div></div></div>
+        <div class="metric-row"><span class="metric-label">MEM Usage</span><div class="metric-bar"><div class="metric-bar-fill" id="mem-bar" style="width:24%;background:var(--neon-cyan);"></div></div></div>
+        <div class="metric-row"><span class="metric-label">Net I/O</span><div class="metric-bar"><div class="metric-bar-fill" id="net-bar" style="width:45%;background:var(--neon-blue);"></div></div></div>
+        <div class="metric-row"><span class="metric-label">AI Cycles</span><div class="metric-bar"><div class="metric-bar-fill" id="ai-bar" style="width:8%;background:var(--neon-purple);"></div></div></div>
+        <div class="weather-indicator" id="weather-indicator"><i class="fa-solid fa-cloud-sun" style="color:var(--neon-amber);"></i><span style="color:#cbd5e1;">Clear skies. Visibility 10km.</span></div>
+    </div>
+    <div class="side-menu">
+        <button class="icon-btn" id="refresh-sat-btn"><i class="fa-solid fa-rotate"></i><span class="tooltip">REFRESH SAT FEED</span></button>
+        <button class="icon-btn" id="tilt-btn"><i class="fa-solid fa-cube"></i><span class="tooltip">TOGGLE 3D VIEW</span></button>
+        <button class="icon-btn" id="terrain-btn"><i class="fa-solid fa-mountain"></i><span class="tooltip">TERRAIN MODE</span></button>
+        <button class="icon-btn" id="globe-btn"><i class="fa-solid fa-earth-americas"></i><span class="tooltip">GLOBE VIEW</span></button>
+        <button class="icon-btn" id="reset-btn"><i class="fa-solid fa-compass"></i><span class="tooltip">RECENTER VIEW</span></button>
+    </div>
+    <div class="telemetry-bar">
+        <div class="live-pulse-row"><div class="dot"></div> SATELLITE DOWNLINK: <span id="fps-display">60</span>FPS SYNC</div>
+        <div class="telemetry-grid">
+            <div class="telemetry-item"><span>LAT</span><span class="telemetry-value" id="tel-lat">34.2182</span></div>
+            <div class="telemetry-item"><span>LNG</span><span class="telemetry-value" id="tel-lng">73.2399</span></div>
+            <div class="telemetry-item"><span>ZOOM</span><span class="telemetry-value" id="tel-zoom">13.0x</span></div>
+            <div class="telemetry-item"><span>PITCH</span><span class="telemetry-value" id="tel-pitch">0°</span></div>
+            <div class="telemetry-item"><span>BEARING</span><span class="telemetry-value" id="tel-bearing">0°</span></div>
+            <div class="telemetry-item"><span>FPS</span><span class="telemetry-value" id="tel-fps">60</span></div>
+        </div>
+    </div>
+    <div class="route-info" id="route-info">
+        <div class="route-stat"><div class="route-stat-value" id="route-dist">0</div><div class="route-stat-label">KM</div></div>
+        <div class="route-divider"></div>
+        <div class="route-stat"><div class="route-stat-value" id="route-time">0</div><div class="route-stat-label">MIN</div></div>
+        <div class="route-divider"></div>
+        <div class="route-stat"><div class="route-stat-value" id="route-alt">0</div><div class="route-stat-label">M ALT</div></div>
+    </div>
+    <div class="alt-routes" id="alt-routes">
+        <div style="font-family: Orbitron,sans-serif; font-size: 9px; color: var(--neon-cyan); letter-spacing: 2px; margin-bottom: 4px;">ALT ROUTES</div>
+        <div class="alt-route-item active" id="alt-route-0">
+            <div class="alt-route-color" style="background: var(--neon-cyan);"></div>
+            <div class="alt-route-info"><div class="alt-route-time" style="color: var(--neon-cyan);">OPTIMAL</div><div class="alt-route-dist" id="alt-dist-0">-- km</div></div>
+            <span class="alt-route-tag" style="background: rgba(0,240,255,0.15); color: var(--neon-cyan);">FAST</span>
+        </div>
+        <div class="alt-route-item" id="alt-route-1">
+            <div class="alt-route-color" style="background: var(--neon-amber);"></div>
+            <div class="alt-route-info"><div class="alt-route-time" style="color: var(--neon-amber);">SCENIC</div><div class="alt-route-dist" id="alt-dist-1">-- km</div></div>
+            <span class="alt-route-tag" style="background: rgba(245,158,11,0.15); color: var(--neon-amber);">VIEW</span>
+        </div>
+        <div class="alt-route-item" id="alt-route-2">
+            <div class="alt-route-color" style="background: var(--neon-purple);"></div>
+            <div class="alt-route-info"><div class="alt-route-time" style="color: var(--neon-purple);">ECO</div><div class="alt-route-dist" id="alt-dist-2">-- km</div></div>
+            <span class="alt-route-tag" style="background: rgba(168,85,247,0.15); color: var(--neon-purple);">SAVE</span>
+        </div>
+    </div>
+    <div class="elevation-panel" id="elevation-panel">
+        <div style="font-family: Orbitron,sans-serif; font-size: 9px; color: var(--neon-cyan); letter-spacing: 2px; margin-bottom: 4px;">ELEVATION PROFILE</div>
+        <canvas class="elevation-canvas" id="elevation-canvas" width="196" height="60"></canvas>
+        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 4px;">
+            <span>START</span><span id="elev-max">MAX: --m</span><span>END</span>
+        </div>
+    </div>
 
-class Stage(Enum):
-    SCANNED = auto()
-    CLEARED = auto()
-    CONFIRMED = auto()
-    STAGED = auto()
-    EXECUTED = auto()
-    CLOSED = auto()
+    <script>
+    (function() {
+        // ===== VISIONX NEURAL NAVIGATION CORE v9.7.1 =====
+        'use strict';
 
-@dataclass
-class TradeThread:
-    thread_id: int
-    token_address: str
-    symbol: str
-    stage: Stage = Stage.SCANNED
-    on_chain_reason: str = ""
-    whale_confirm: bool = False
-    shill_confirm: bool = False
-    risk_cleared: bool = False
-    rejection_reason: Optional[str] = None
-    order_id: Optional[str] = None
-    approved_by_head: bool = False
+        // --- Configuration ---
+        const CONFIG = {
+            mapStyle: 'https://openmaptiles.github.io/dark-matter-gl-style/style-cdn.json',
+            fallbackStyle: 'https://demotiles.maplibre.org/style.json',
+            center: [-73.9399, 40.7128],
+            zoom: 11,
+            pitch: 0,
+            bearing: 0,
+            geocodeUrl: 'https://nominatim.openstreetmap.org/search',
+            routeUrl: 'https://router.project-osrm.org/route/v1/driving/',
+            mockFallback: true
+        };
 
-# --- SYSTEM STATES & GUARDRAILS ---
-class SystemState:
-    MAX_DAILY_LOSS_PCT = 0.05
-    current_daily_loss_pct = 0.00
-    is_halted = False
-    thread_counter = 100
-    active_threads: Dict[int, TradeThread] = {}
+        // --- State ---
+        const state = {
+            map: null,
+            origin: null,
+            destination: null,
+            routeLayer: null,
+            routeData: null,
+            markers: [],
+            is3D: false,
+            isTerrain: false,
+            isGlobe: false,
+            currentRoute: 0,
+            typingInterval: null,
+            fps: 60,
+            frameCount: 0,
+            lastFpsTime: performance.now()
+        };
 
-    @classmethod
-    def check_halt(cls):
-        if cls.current_daily_loss_pct >= cls.MAX_DAILY_LOSS_PCT:
-            cls.is_halted = True
-            raise SafetyException("CRITICAL: Daily 5% loss limit reached. Floor halted immediately.")
-        if cls.is_halted:
-            raise SafetyException("Floor is currently HALTED. Action rejected.")
+        // --- DOM Elements ---
+        const $ = id => document.getElementById(id);
+        const els = {
+            map: $('map'),
+            loading: $('loading-screen'),
+            loadingText: $('loading-text'),
+            startNode: $('start-node'),
+            destNode: $('dest-node'),
+            oracleText: $('oracle-text'),
+            engageBtn: $('engage-sat-btn'),
+            compassRose: $('compass-rose'),
+            compassNeedle: $('compass-needle'),
+            telLat: $('tel-lat'),
+            telLng: $('tel-lng'),
+            telZoom: $('tel-zoom'),
+            telPitch: $('tel-pitch'),
+            telBearing: $('tel-bearing'),
+            telFps: $('tel-fps'),
+            fpsDisplay: $('fps-display'),
+            routeInfo: $('route-info'),
+            routeDist: $('route-dist'),
+            routeTime: $('route-time'),
+            routeAlt: $('route-alt'),
+            altRoutes: $('alt-routes'),
+            altDist0: $('alt-dist-0'),
+            altDist1: $('alt-dist-1'),
+            altDist2: $('alt-dist-2'),
+            elevationPanel: $('elevation-panel'),
+            elevationCanvas: $('elevation-canvas'),
+            elevMax: $('elev-max'),
+            weatherIndicator: $('weather-indicator'),
+            cpuBar: $('cpu-bar'),
+            memBar: $('mem-bar'),
+            netBar: $('net-bar'),
+            aiBar: $('ai-bar'),
+            routeProgress: $('route-progress'),
+            satStatus: $('sat-status')
+        };
 
-    @staticmethod
-    def sanitize_input(text: str):
-        """Sanitizes text to prevent key leaks (The Rule That Does Not Bend)."""
-        key_patterns = [" private key ", " seed phrase ", " mnemonic ", " secret "]
-        if any(pattern in text.lower() for pattern in key_patterns):
-            raise SafetyException("SECURITY VIOLATION: Private key/seed phrase attempt detected in chat! Terminating experiment.")
+        // --- Oracle Terminal Typewriter ---
+        const oracleMessages = [
+            "Neural core online. Satellite constellation synced. Awaiting navigation command vectors...",
+            "Quantum routing engine initialized. Multi-dimensional pathfinding algorithms active.",
+            "Satellite uplink established. Real-time telemetry feed synchronized at 60Hz.",
+            "Neural network processing route parameters. Calculating optimal trajectory vectors...",
+            "Route computation complete. Elevation profile generated. Weather data integrated.",
+            "Autonomous navigation core ready. Awaiting origin and destination coordinates.",
+            "Satellite imagery cache refreshed. High-resolution terrain data loaded.",
+            "Neural link stable. All systems nominal. Ready for quantum routing initiation."
+        ];
 
-# --- AGENT MODULES ---
+        function typeWriter(text, element, speed = 30) {
+            if (state.typingInterval) clearInterval(state.typingInterval);
+            element.innerHTML = '<span class="oracle-cursor"></span>';
+            let i = 0;
+            state.typingInterval = setInterval(() => {
+                if (i < text.length) {
+                    element.innerHTML = text.substring(0, i + 1) + '<span class="oracle-cursor"></span>';
+                    i++;
+                } else {
+                    clearInterval(state.typingInterval);
+                    state.typingInterval = null;
+                }
+            }, speed);
+        }
 
-class Agent:
-    def __init__(self, name: str):
-        self.name = name
+        function setOracle(text, speed = 30) {
+            typeWriter(text, els.oracleText, speed);
+        }
 
-    def log(self, message: str):
-        logging.info(message, extra={"node": self.name})
+        // --- Loading Sequence ---
+        const loadingStages = [
+            { text: "INITIALIZING NEURAL CORE...", delay: 0 },
+            { text: "SYNCING SATELLITE CONSTELLATION...", delay: 600 },
+            { text: "CALIBRATING QUANTUM SENSORS...", delay: 1200 },
+            { text: "LOADING TERRAIN DATABASE...", delay: 1800 },
+            { text: "ESTABLISHING SECURE UPLINK...", delay: 2400 },
+            { text: "SYSTEM READY. VISIONX ONLINE.", delay: 3000 }
+        ];
 
-class SearchAgent(Agent):
-    """ALPHA HUNTER: 24/7 Scanning for fresh deployments and liquidity."""
-    def scan_new_leads(self, token_address: str, symbol: str, on_chain_reason: str) -> TradeThread:
-        SystemState.check_halt()
-        SystemState.thread_counter += 1
-        thread = TradeThread(
-            thread_id=SystemState.thread_counter,
-            token_address=token_address,
-            symbol=symbol,
-            on_chain_reason=on_chain_reason
-        )
-        SystemState.active_threads[thread.thread_id] = thread
-        self.log(f"[Thread #{thread.thread_id}] Scanned {symbol} ({token_address}). Reason: {on_chain_reason}. Handoff to RISK.")
-        return thread
+        function runLoadingSequence() {
+            loadingStages.forEach(stage => {
+                setTimeout(() => {
+                    els.loadingText.textContent = stage.text;
+                }, stage.delay);
+            });
+            setTimeout(() => {
+                els.loading.classList.add('hidden');
+                setOracle(oracleMessages[0]);
+            }, 3800);
+        }
 
-class WhaleAgent(Agent):
-    """WHALE: Tracks smart money wallets."""
-    def verify_accumulation(self, thread: TradeThread, detected: bool):
-        SystemState.check_halt()
-        if detected:
-            thread.whale_confirm = True
-            self.log(f"[Thread #{thread.thread_id}] CONFIRMED: Stealth accumulation detected on-chain.")
-        else:
-            self.log(f"[Thread #{thread.thread_id}] Silent: No stealth accumulation confirmed.")
+        // --- Map Initialization ---
+        function initMap() {
+            try {
+                state.map = new maplibregl.Map({
+                    container: 'map',
+                    style: CONFIG.mapStyle,
+                    center: CONFIG.center,
+                    zoom: CONFIG.zoom,
+                    pitch: CONFIG.pitch,
+                    bearing: CONFIG.bearing,
+                    attributionControl: true,
+                    antialias: true
+                });
+            } catch (e) {
+                console.warn('Primary style failed, using fallback:', e);
+                state.map = new maplibregl.Map({
+                    container: 'map',
+                    style: CONFIG.fallbackStyle,
+                    center: CONFIG.center,
+                    zoom: CONFIG.zoom,
+                    pitch: CONFIG.pitch,
+                    bearing: CONFIG.bearing,
+                    attributionControl: true,
+                    antialias: true
+                });
+            }
 
-class ShillAgent(Agent):
-    """SHILL: Tracks social velocity (X / Telegram)."""
-    def check_velocity(self, thread: TradeThread, is_organic: bool):
-        SystemState.check_halt()
-        if is_organic:
-            thread.shill_confirm = True
-            self.log(f"[Thread #{thread.thread_id}] CONFIRMED: Organic social velocity spike detected.")
-        else:
-            self.log(f"[Thread #{thread.thread_id}] REJECTED: Hype detected as paid/botnet scatter. No signal.")
+            state.map.on('load', () => {
+                state.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+                state.map.addControl(new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' }), 'bottom-left');
+                state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+                
+                // Add atmosphere glow effect
+                state.map.setFog({
+                    'color': '#020617',
+                    'high-color': '#0f172a',
+                    'horizon-blend': 0.1,
+                    'star-intensity': 0.8
+                });
+            });
 
-class RiskAgent(Agent):
-    """RISK: Contract auditor (Mint, Freeze, LP Lock, Tax, Honeypot)."""
-    def audit_contract(self, thread: TradeThread, mint_auth: bool, freeze_auth: bool, lp_locked: bool) -> bool:
-        SystemState.check_halt()
-        if mint_auth or freeze_auth or not lp_locked:
-            thread.risk_cleared = False
-            thread.rejection_reason = f"MintAuth={mint_auth}, FreezeAuth={freeze_auth}, LPLocked={lp_locked}"
-            self.log(f"[Thread #{thread.thread_id}] REJECTED: Failed contract safety check ({thread.rejection_reason}). Thread halted.")
-            return False
-        
-        thread.risk_cleared = True
-        thread.stage = Stage.CLEARED
-        self.log(f"[Thread #{thread.thread_id}] CLEAR: Contract audited and safe. Passed to execution staging.")
-        return True
+            state.map.on('move', updateTelemetry);
+            state.map.on('rotate', updateCompass);
+            state.map.on('error', (e) => {
+                console.warn('Map error:', e);
+                setOracle("WARNING: Satellite data stream interrupted. Switching to backup telemetry...");
+            });
+        }
 
-class SniperAgent(Agent):
-    """SNIPER: Execution preparer."""
-    def stage_order(self, thread: TradeThread) -> Optional[str]:
-        SystemState.check_halt()
-        # Enforce Funnel Stage Verification
-        if thread.stage != Stage.CLEARED:
-            raise SafetyException(f"[Thread #{thread.thread_id}] Stage Rule Violation: Cannot stage uncaught or un-cleared lead.")
-        
-        # Enforce Two Confirms Requirement
-        if not (thread.whale_confirm or thread.shill_confirm):
-            self.log(f"[Thread #{thread.thread_id}] WAITING: Missing required confirmations from WHALE/SHILL.")
-            return None
-
-        thread.stage = Stage.CONFIRMED
-        order_id = f"ORDER-{thread.thread_id}"
-        thread.order_id = order_id
-        thread.stage = Stage.STAGED
-        self.log(f"[Thread #{thread.thread_id}] Staged order {order_id}. Awaiting explicit 'APPROVE #{thread.thread_id}' from Head of Desk.")
-        return order_id
-
-    def execute_order(self, thread: TradeThread, user_input: str):
-        SystemState.check_halt()
-        SystemState.sanitize_input(user_input)
-        
-        # Enforce Strict Written Manual Handoff Rule
-        expected_approval = f"APPROVE #{thread.thread_id}"
-        if user_input.strip() != expected_approval:
-            self.log(f"[Thread #{thread.thread_id}] EXECUTION BLOCKED: Invalid approval string '{user_input}'. Must match exact format: '{expected_approval}'")
-            return
-        
-        thread.approved_by_head = True
-        thread.stage = Stage.EXECUTED
-        self.log(f"[Thread #{thread.thread_id}] EXECUTED: Order {thread.order_id} filled. Handoff to EXIT and RUG sentinels.")
-
-class ExitAgent(Agent):
-    """EXIT: Open position & trailing stops manager."""
-    def manage_position(self, thread: TradeThread, profit_target_hit: bool):
-        SystemState.check_halt()
-        if thread.stage == Stage.EXECUTED and profit_target_hit:
-            thread.stage = Stage.CLOSED
-            self.log(f"[Thread #{thread.thread_id}] CLOSED: Profit taken scaling up. Position closed cleanly.")
-
-class RugAgent(Agent):
-    """RUG: Emergency sentinel for LP pulls and dev drains."""
-    def monitor(self, thread: TradeThread, lp_pulled: bool):
-        SystemState.check_halt()
-        if thread.stage == Stage.EXECUTED and lp_pulled:
-            self.log(f"[Thread #{thread.thread_id}] EMERGENCY DUMP: LP pull detected! Raising alarm to EXIT for immediate emergency market exit.")
-            thread.stage = Stage.CLOSED
-
-# --- HEAD OF DESK / FLOOR CONTROLLER ---
-
-class HeadOfDesk:
-    def __init__(self):
-        self.search = SearchAgent("SEARCH")
-        self.whale = WhaleAgent("WHALE")
-        self.shill = ShillAgent("SHILL")
-        self.risk = RiskAgent("RISK")
-        self.sniper = SniperAgent("SNIPER")
-        self.exit = ExitAgent("EXIT")
-        self.rug = RugAgent("RUG")
-
-    def run_pipeline(self, token_address: str, symbol: str, lead_reason: str, mint: bool, freeze: bool, lp_locked: bool, whale: bool, shill_organic: bool):
-        # 1. SEARCH
-        thread = self.search.scan_new_leads(token_address, symbol, lead_reason)
-        
-        # 2. RISK (Hard Gate)
-        cleared = self.risk.audit_contract(thread, mint_auth=mint, freeze_auth=freeze, lp_locked=lp_locked)
-        if not cleared:
-            return thread
+        // --- Telemetry Updates ---
+        function updateTelemetry() {
+            const center = state.map.getCenter();
+            const zoom = state.map.getZoom();
+            const pitch = state.map.getPitch();
+            const bearing = state.map.getBearing();
             
-        # 3. CONFIRMATIONS (WHALE / SHILL)
-        self.whale.verify_accumulation(thread, detected=whale)
-        self.shill.check_velocity(thread, is_organic=shill_organic)
+            els.telLat.textContent = center.lat.toFixed(4);
+            els.telLng.textContent = center.lng.toFixed(4);
+            els.telZoom.textContent = zoom.toFixed(1) + 'x';
+            els.telPitch.textContent = Math.round(pitch) + '°';
+            els.telBearing.textContent = Math.round(bearing) + '°';
+        }
 
-        # 4. SNIPER STAGING
-        self.sniper.stage_order(thread)
-        return thread
+        function updateCompass() {
+            const bearing = state.map.getBearing();
+            els.compassRose.style.transform = `rotate(${-bearing}deg)`;
+        }
 
-    def send_morning_status(self):
-        logging.info("=== MORNING STATUS REPORT ===", extra={"node": "HEAD OF DESK"})
-        logging.info("Floor status: ACTIVE. Funnel scanning online. Loss limit set at 5%.", extra={"node": "HEAD OF DESK"})
+        // --- FPS Counter ---
+        function updateFPS() {
+            state.frameCount++;
+            const now = performance.now();
+            if (now - state.lastFpsTime >= 1000) {
+                state.fps = state.frameCount;
+                state.frameCount = 0;
+                state.lastFpsTime = now;
+                els.telFps.textContent = state.fps;
+                els.fpsDisplay.textContent = state.fps;
+            }
+            requestAnimationFrame(updateFPS);
+        }
 
-    def send_evening_report(self):
-        logging.info("=== EVENING REPORT ===", extra={"node": "HEAD OF DESK"})
-        logging.info(f"Total Threads Processed Today: {len(SystemState.active_threads)}", extra={"node": "HEAD OF DESK"})
+        // --- System Metrics Animation ---
+        function animateMetrics() {
+            const metrics = [
+                { el: els.cpuBar, min: 10, max: 45, color: 'var(--neon-green)' },
+                { el: els.memBar, min: 20, max: 60, color: 'var(--neon-cyan)' },
+                { el: els.netBar, min: 30, max: 80, color: 'var(--neon-blue)' },
+                { el: els.aiBar, min: 5, max: 35, color: 'var(--neon-purple)' }
+            ];
+            
+            metrics.forEach(m => {
+                const val = Math.random() * (m.max - m.min) + m.min;
+                m.el.style.width = val + '%';
+                m.el.style.background = m.color;
+            });
+            
+            setTimeout(animateMetrics, 2000);
+        }
 
-# --- DEMONSTRATION RUN ---
+        // --- Weather Simulation ---
+        const weatherConditions = [
+            { icon: 'fa-sun', text: 'Clear skies. Visibility 10km.', color: 'var(--neon-amber)' },
+            { icon: 'fa-cloud-sun', text: 'Partly cloudy. Visibility 8km.', color: 'var(--neon-amber)' },
+            { icon: 'fa-cloud', text: 'Overcast. Visibility 6km.', color: '#94a3b8' },
+            { icon: 'fa-cloud-rain', text: 'Light rain. Visibility 4km.', color: 'var(--neon-blue)' },
+            { icon: 'fa-bolt', text: 'Thunderstorms. Visibility 2km.', color: 'var(--neon-purple)' },
+            { icon: 'fa-snowflake', text: 'Snowfall. Visibility 3km.', color: '#e2e8f0' },
+            { icon: 'fa-smog', text: 'Foggy conditions. Visibility 1km.', color: '#64748b' }
+        ];
 
-if __name__ == "__main__":
-    desk = HeadOfDesk()
-    
-    desk.send_morning_status()
-    
-    print("\n--- TEST CASE 1: Full Valid Pipeline Pass ---")
-    thread_101 = desk.run_pipeline(
-        token_address="0xabc123...sol",
-        symbol="ALPHA",
-        lead_reason="Liquidity lock + Fresh dev deploy",
-        mint=False, freeze=False, lp_locked=True,
-        whale=True, shill_organic=True
-    )
-    
-    # Head of Desk approves execution with literal syntax
-    desk.sniper.execute_order(thread_101, user_input="APPROVE #101")
-    
-    # Monitor open position
-    desk.rug.monitor(thread_101, lp_pulled=False)
-    desk.exit.manage_position(thread_101, profit_target_hit=True)
+        function updateWeather() {
+            const w = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+            els.weatherIndicator.innerHTML = `<i class="fa-solid ${w.icon}" style="color:${w.color};"></i><span style="color:#cbd5e1;">${w.text}</span>`;
+        }
 
-    print("\n--- TEST CASE 2: Contract Audit Rejection at RISK ---")
-    thread_102 = desk.run_pipeline(
-        token_address="0xbad456...sol",
-        symbol="TRAP",
-        lead_reason="High early buy volume",
-        mint=True, freeze=False, lp_locked=True, # Failed mint check
-        whale=True, shill_organic=True
-    )
+        // --- Geocoding ---
+        async function geocode(query) {
+            try {
+                const res = await fetch(`${CONFIG.geocodeUrl}?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+                    headers: { 'User-Agent': 'VisionX-NavCore/9.7.1' }
+                });
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name };
+                }
+            } catch (e) {
+                console.warn('Geocoding failed, using mock:', e);
+            }
+            return mockGeocode(query);
+        }
 
-    print("\n--- TEST CASE 3: Attempted Invalid Approval Paraphrase ---")
-    thread_103 = desk.run_pipeline(
-        token_address="0xdef789...sol",
-        symbol="BETA",
-        lead_reason="GitHub commit + early pool add",
-        mint=False, freeze=False, lp_locked=True,
-        whale=True, shill_organic=False
-    )
-    # Incorrect text input (e.g. "looks good go ahead")
-    desk.sniper.execute_order(thread_103, user_input="he seemed fine with it")
+        function mockGeocode(query) {
+            const mockDB = {
+                'new york': [40.7128, -74.0060],
+                'los angeles': [34.0522, -118.2437],
+                'london': [51.5074, -0.1278],
+                'tokyo': [35.6762, 139.6503],
+                'paris': [48.8566, 2.3522],
+                'berlin': [52.5200, 13.4050],
+                'sydney': [-33.8688, 151.2093],
+                'dubai': [25.2048, 55.2708],
+                'singapore': [1.3521, 103.8198],
+                'mumbai': [19.0760, 72.8777],
+                'beijing': [39.9042, 116.4074],
+                'moscow': [55.7558, 37.6173],
+                'cairo': [30.0444, 31.2357],
+                'rio': [-22.9068, -43.1729],
+                'toronto': [43.6532, -79.3832],
+                'chicago': [41.8781, -87.6298],
+                'san francisco': [37.7749, -122.4194],
+                'seattle': [47.6062, -122.3321],
+                'miami': [25.7617, -80.1918],
+                'boston': [42.3601, -71.0589]
+            };
+            const key = query.toLowerCase().trim();
+            for (const k in mockDB) {
+                if (key.includes(k)) return { lat: mockDB[k][0], lon: mockDB[k][1], name: query };
+            }
+            // Random location if not found
+            return { lat: 20 + Math.random() * 40, lon: -100 + Math.random() * 100, name: query };
+        }
 
-    desk.send_evening_report()
+        // --- Routing ---
+        async function calculateRoute(start, end) {
+            try {
+                const url = `${CONFIG.routeUrl}${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson&alternatives=true`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.routes && data.routes.length > 0) {
+                    return data;
+                }
+            } catch (e) {
+                console.warn('Routing failed, using mock:', e);
+            }
+            return mockRoute(start, end);
+        }
+
+        function mockRoute(start, end) {
+            const steps = 50;
+            const coords = [];
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const lat = start.lat + (end.lat - start.lat) * t + (Math.random() - 0.5) * 0.5 * Math.sin(t * Math.PI);
+                const lon = start.lon + (end.lon - start.lon) * t + (Math.random() - 0.5) * 0.5 * Math.sin(t * Math.PI);
+                coords.push([lon, lat]);
+            }
+            const dist = Math.sqrt(Math.pow(end.lat - start.lat, 2) + Math.pow(end.lon - start.lon, 2)) * 111;
+            const time = dist * 1.2;
+            return {
+                routes: [
+                    { geometry: { coordinates: coords }, distance: dist * 1000, duration: time * 60 },
+                    { geometry: { coordinates: coords.map(c => [c[0] + 0.1, c[1] + 0.05]) }, distance: dist * 1.15 * 1000, duration: time * 1.3 * 60 },
+                    { geometry: { coordinates: coords.map(c => [c[0] - 0.05, c[1] - 0.1]) }, distance: dist * 0.95 * 1000, duration: time * 1.5 * 60 }
+                ]
+            };
+        }
+
+        // --- Route Drawing ---
+        function drawRoute(routeData, routeIndex = 0) {
+            clearRoute();
+            const route = routeData.routes[routeIndex];
+            const coords = route.geometry.coordinates;
+            const colors = ['#00f0ff', '#f59e0b', '#a855f7'];
+            const color = colors[routeIndex % colors.length];
+
+            state.map.addSource('route', {
+                type: 'geojson',
+                data: {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: { type: 'LineString', coordinates: coords }
+                }
+            });
+
+            state.map.addLayer({
+                id: 'route-glow',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': color,
+                    'line-width': 8,
+                    'line-opacity': 0.3,
+                    'line-blur': 4
+                }
+            });
+
+            state.map.addLayer({
+                id: 'route-line',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': color,
+                    'line-width': 3,
+                    'line-opacity': 0.9
+                }
+            });
+
+            // Animated dash
+            state.map.addLayer({
+                id: 'route-dash',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': '#ffffff',
+                    'line-width': 2,
+                    'line-opacity': 0.8,
+                    'line-dasharray': [0, 2, 1],
+                }
+            });
+
+            // Animate dash
+            let offset = 0;
+            function animateDash() {
+                offset -= 0.5;
+                if (state.map.getLayer('route-dash')) {
+                    state.map.setPaintProperty('route-dash', 'line-dasharray', [0.5, 1, offset % 3]);
+                }
+                requestAnimationFrame(animateDash);
+            }
+            animateDash();
+
+            state.routeLayer = 'route';
+            state.routeData = routeData;
+
+            // Update stats
+            const distKm = (route.distance / 1000).toFixed(1);
+            const timeMin = Math.round(route.duration / 60);
+            const altGain = Math.round(Math.random() * 500 + 50);
+
+            els.routeDist.textContent = distKm;
+            els.routeTime.textContent = timeMin;
+            els.routeAlt.textContent = altGain;
+
+            els.altDist0.textContent = (routeData.routes[0].distance / 1000).toFixed(1) + ' km';
+            if (routeData.routes[1]) els.altDist1.textContent = (routeData.routes[1].distance / 1000).toFixed(1) + ' km';
+            if (routeData.routes[2]) els.altDist2.textContent = (routeData.routes[2].distance / 1000).toFixed(1) + ' km';
+
+            els.routeInfo.style.display = 'flex';
+            els.altRoutes.style.display = 'flex';
+            els.elevationPanel.style.display = 'flex';
+
+            // Fit bounds
+            const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
+            state.map.fitBounds(bounds, { padding: 100, duration: 1500 });
+
+            // Draw elevation
+            drawElevation(coords);
+
+            // Progress animation
+            els.routeProgress.style.width = '0%';
+            setTimeout(() => { els.routeProgress.style.width = '100%'; }, 100);
+            setTimeout(() => { els.routeProgress.style.width = '0%'; }, 2000);
+        }
+
+        function clearRoute() {
+            if (state.map.getLayer('route-dash')) state.map.removeLayer('route-dash');
+            if (state.map.getLayer('route-line')) state.map.removeLayer('route-line');
+            if (state.map.getLayer('route-glow')) state.map.removeLayer('route-glow');
+            if (state.map.getSource('route')) state.map.removeSource('route');
+            state.markers.forEach(m => m.remove());
+            state.markers = [];
+            els.routeInfo.style.display = 'none';
+            els.altRoutes.style.display = 'none';
+            els.elevationPanel.style.display = 'none';
+        }
+
+        function addMarker(lngLat, type) {
+            const el = document.createElement('div');
+            el.className = type === 'origin' ? 'marker-origin' : 'marker-dest';
+            const marker = new maplibregl.Marker(el).setLngLat(lngLat).addTo(state.map);
+            state.markers.push(marker);
+            return marker;
+        }
+
+        // --- Elevation Chart ---
+        function drawElevation(coords) {
+            const canvas = els.elevationCanvas;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Generate fake elevation data based on distance
+            const elevations = coords.map((c, i) => {
+                const base = 100 + Math.sin(i * 0.2) * 50 + Math.cos(i * 0.1) * 30;
+                return Math.max(0, base + Math.random() * 20);
+            });
+            
+            const maxElev = Math.max(...elevations);
+            const minElev = Math.min(...elevations);
+            els.elevMax.textContent = `MAX: ${Math.round(maxElev)}m`;
+            
+            // Draw area
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            elevations.forEach((e, i) => {
+                const x = (i / (elevations.length - 1)) * w;
+                const y = h - ((e - minElev) / (maxElev - minElev || 1)) * (h - 10) - 5;
+                ctx.lineTo(x, y);
+            });
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, 'rgba(0,240,255,0.4)');
+            grad.addColorStop(1, 'rgba(0,240,255,0.02)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2;
+            elevations.forEach((e, i) => {
+                const x = (i / (elevations.length - 1)) * w;
+                const y = h - ((e - minElev) / (maxElev - minElev || 1)) * (h - 10) - 5;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+
+        // --- Main Routing Handler ---
+        async function handleRouting() {
+            const startQuery = els.startNode.value.trim();
+            const destQuery = els.destNode.value.trim();
+            
+            if (!startQuery || !destQuery) {
+                setOracle("ERROR: Origin and destination coordinates required. Please input valid location nodes.");
+                els.engageBtn.classList.remove('processing');
+                return;
+            }
+
+            els.engageBtn.classList.add('processing');
+            els.engageBtn.textContent = "CALCULATING VECTORS...";
+            setOracle("Initiating quantum routing sequence. Geocoding origin node...");
+            els.routeProgress.style.width = '30%';
+
+            const start = await geocode(startQuery);
+            setOracle("Origin locked. Geocoding destination node...");
+            els.routeProgress.style.width = '60%';
+            
+            const end = await geocode(destQuery);
+            setOracle("Coordinates acquired. Computing optimal trajectory...");
+            els.routeProgress.style.width = '80%';
+
+            state.origin = start;
+            state.destination = end;
+
+            clearRoute();
+            addMarker([start.lon, start.lat], 'origin');
+            addMarker([end.lon, end.lat], 'dest');
+
+            const routeData = await calculateRoute(start, end);
+            els.routeProgress.style.width = '100%';
+            
+            drawRoute(routeData, 0);
+            
+            setOracle(`Route computed. Distance: ${(routeData.routes[0].distance/1000).toFixed(1)}km. ETA: ${Math.round(routeData.routes[0].duration/60)}min. Neural navigation active.`);
+            
+            els.engageBtn.classList.remove('processing');
+            els.engageBtn.textContent = "INITIATE QUANTUM ROUTING";
+            
+            updateWeather();
+            
+            setTimeout(() => { els.routeProgress.style.width = '0%'; }, 1500);
+        }
+
+        // --- Button Handlers ---
+        els.engageBtn.addEventListener('click', handleRouting);
+        
+        $('refresh-sat-btn').addEventListener('click', () => {
+            setOracle("Refreshing satellite constellation data...");
+            state.map.setCenter(state.map.getCenter());
+            setTimeout(() => setOracle("Satellite feed refreshed. All telemetry channels nominal."), 1500);
+        });
+
+        $('tilt-btn').addEventListener('click', () => {
+            state.is3D = !state.is3D;
+            state.map.easeTo({ pitch: state.is3D ? 60 : 0, duration: 1000 });
+            setOracle(state.is3D ? "3D perspective view engaged. Terrain visualization active." : "Returning to orthographic projection mode.");
+        });
+
+        $('terrain-btn').addEventListener('click', () => {
+            state.isTerrain = !state.isTerrain;
+            if (state.isTerrain) {
+                state.map.addSource('terrain', {
+                    type: 'raster-dem',
+                    url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+                    tileSize: 256
+                });
+                state.map.setTerrain({ source: 'terrain', exaggeration: 1.5 });
+                setOracle("Terrain elevation model activated. Topographic rendering enabled.");
+            } else {
+                state.map.setTerrain(null);
+                if (state.map.getSource('terrain')) state.map.removeSource('terrain');
+                setOracle("Terrain mode disengaged. Flat projection restored.");
+            }
+        });
+
+        $('globe-btn').addEventListener('click', () => {
+            state.isGlobe = !state.isGlobe;
+            state.map.setProjection(state.isGlobe ? 'globe' : 'mercator');
+            setOracle(state.isGlobe ? "Globe projection active. Spherical coordinate system engaged." : "Mercator projection restored. Planar coordinate system active.");
+        });
+
+        $('reset-btn').addEventListener('click', () => {
+            state.map.flyTo({ center: CONFIG.center, zoom: CONFIG.zoom, pitch: 0, bearing: 0, duration: 1500 });
+            clearRoute();
+            setOracle("View recentered to default coordinates. All navigation markers cleared.");
+        });
+
+        // Alt route selection
+        [0, 1, 2].forEach(i => {
+            $(`alt-route-${i}`)?.addEventListener('click', () => {
+                if (!state.routeData) return;
+                document.querySelectorAll('.alt-route-item').forEach(el => el.classList.remove('active'));
+                $(`alt-route-${i}`).classList.add('active');
+                state.currentRoute = i;
+                drawRoute(state.routeData, i);
+                setOracle(`Alternative route ${i+1} selected. Recalculating navigation vectors...`);
+            });
+        });
+
+        // Enter key on inputs
+        els.startNode.addEventListener('keypress', e => { if (e.key === 'Enter') els.destNode.focus(); });
+        els.destNode.addEventListener('keypress', e => { if (e.key === 'Enter') handleRouting(); });
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            runLoadingSequence();
+            initMap();
+            updateFPS();
+            animateMetrics();
+            setInterval(updateWeather, 30000);
+        });
+
+    })();
+    </script>
+</body>
+</html>''
